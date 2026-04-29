@@ -1,7 +1,7 @@
 ---
 title: "Write for evotec.xyz"
 description: "A friendly guide to contributing a guest post to evotec.xyz with Markdown, local images, author credit, and pull request review."
-date: "2026-05-01"
+date: "2026-04-29"
 language: "en"
 authors:
   - przemyslaw-klys
