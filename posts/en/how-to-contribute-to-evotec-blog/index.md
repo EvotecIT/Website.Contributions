@@ -31,6 +31,18 @@ Put the Markdown file, cover image, and screenshots in the same article folder:
 
 ![A visual folder structure showing one article folder with index.md, cover.webp, and an images folder](./images/article-folder-structure.webp)
 
+Use this shape:
+
+```text
+posts/en/my-article-slug/
+  index.md
+  cover.webp
+  images/
+    screenshot-01.webp
+```
+
+The first folder after `posts/` is the language. The next folder is the article slug. Everything used by that article stays inside that folder.
+
 That small bit of structure makes the whole process calmer. Reviewers can see the article and its images together, and the publishing importer can copy everything into stable website paths without guessing where files belong.
 
 ## 2. Tell Readers Who You Are
