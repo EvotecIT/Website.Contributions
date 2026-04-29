@@ -1,5 +1,7 @@
 # Evotec Website Contributions
 
+![Evotec website contributors quality card](assets/website-contributors-social.png)
+
 This repository is the intake area for guest and community blog posts for Evotec websites.
 
 Writers work in self-contained post folders under `posts/<language>/<year>/<slug>/`. Keep the Markdown post, cover image, and supporting screenshots together so review stays simple and images do not get lost.
@@ -27,7 +29,13 @@ posts/
 templates/
   author.yml
   post/index.md
+examples/
+  how-to-contribute-to-evotec-blog/
 ```
+
+## Visual Example
+
+See `examples/how-to-contribute-to-evotec-blog/` for an ignored demo post with a cover image, supporting images, and complete Markdown. It is intentionally outside `posts/`, so validation and import do not publish it.
 
 ## Writer Flow
 
