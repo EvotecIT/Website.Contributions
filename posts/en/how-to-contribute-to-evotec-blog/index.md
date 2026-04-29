@@ -19,17 +19,17 @@ image_alt: "Beginner-friendly illustration showing how to contribute a post to e
 draft: true
 ---
 
-evotec.xyz has always been built around practical engineering notes: scripts that solved a real problem, migration lessons, unusual edge cases, troubleshooting notes, and the kind of PowerShell or Microsoft detail that can save someone else an afternoon.
+Evotec is opening evotec.xyz to more practical voices from the community: people who build, automate, migrate, troubleshoot, document, and learn in the real world.
 
-If you have something useful to share, you do **not** need access to the private production website repository.
+You do not need to write a perfect article before you start. A useful script, a hard-won lesson, an odd edge case, a migration note, or a clear troubleshooting story can all become something valuable for other engineers.
 
-Instead, you write the article in the public **Website.Contributions** repository, open a pull request, and maintainers review it there. Once the article is accepted, maintainers import it into the production website.
+This guide explains how to prepare that article so it can be reviewed, improved, credited properly, and published on evotec.xyz.
 
 The goal is simple:
 
 - make contributing approachable
 - keep review predictable
-- protect the production website
+- keep publishing safe and consistent
 - give proper credit to contributors
 - help more people share practical engineering knowledge
 
