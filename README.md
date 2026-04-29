@@ -24,7 +24,8 @@ posts/
       index.md
       cover.webp
       images/
-        post-folder.webp
+        article-folder-structure.webp
+        contribution-workflow.webp
 templates/
   author.yml
   post/index.md
@@ -41,6 +42,8 @@ The first article in this repository is `posts/en/how-to-contribute-to-evotec-bl
 3. Copy `templates/post/index.md` into `posts/<language>/<post-slug>/index.md`.
 4. Add cover images and screenshots inside the same post folder.
 5. Open a pull request.
+
+Use `posts/en/...` for English articles and `posts/pl/...` for Polish articles. Accepted local image formats are PNG, JPG, JPEG, WEBP, and GIF. Prefer WEBP for covers and most screenshots when it preserves the needed detail.
 
 ## Automatic Validation
 

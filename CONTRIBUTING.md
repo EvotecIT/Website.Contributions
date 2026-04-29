@@ -7,7 +7,7 @@ Thanks for writing for Evotec. Keep your submission focused, practical, and repr
 - Fork this repository and open a pull request from your fork.
 - Create one folder per post: `posts/<language>/<slug>/`.
 - Put the article in `index.md`.
-- Put the cover image beside `index.md` as `cover.jpg`, `cover.png`, or `cover.webp`.
+- Put the cover image beside `index.md`, preferably as `cover.webp`.
 - Put screenshots in `images/`.
 - Use Markdown image syntax with useful alt text.
 - Do not use SVG files, scripts, HTML snippets, tracking pixels, or remote images.
@@ -25,7 +25,7 @@ Start from:
 ---
 title: "Building DHCP Reports with PowerShell"
 description: "A practical guide to generating DHCP reports with PowerShell."
-date: "2026-05-01"
+date: "2026-04-29"
 language: "en"
 authors:
   - your-name
@@ -34,7 +34,7 @@ categories:
 tags:
   - dhcp
   - reporting
-image: "./cover.jpg"
+image: "./cover.webp"
 image_alt: "PowerShell report preview showing DHCP scope usage"
 draft: true
 ---

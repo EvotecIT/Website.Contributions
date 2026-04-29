@@ -1,15 +1,15 @@
 ---
 title: "Post Title"
 description: "One-sentence summary used in previews, search, and social cards."
-date: "2026-05-01"
+date: "2026-04-29"
 language: "en"
 authors:
-  - przemyslaw-klys
+  - your-name
 categories:
   - PowerShell
 tags:
   - powershell
-image: "./cover.jpg"
+image: "./cover.webp"
 image_alt: "Describe what the cover image shows"
 draft: true
 ---
@@ -24,7 +24,7 @@ Explain the goal and expected result.
 
 Write the implementation in clear, testable sections.
 
-![Describe the screenshot clearly](./images/screenshot-01.png)
+![Describe the screenshot clearly](./images/screenshot-01.webp)
 
 ## Wrap-Up
 
