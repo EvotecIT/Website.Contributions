@@ -12,7 +12,7 @@ Thanks for writing for Evotec. Keep your submission focused, practical, and repr
 - Use Markdown image syntax with useful alt text.
 - Do not use SVG files, scripts, HTML snippets, tracking pixels, or remote images.
 - Add or update your author profile in `authors/<slug>.yml`.
-- Run validation before opening a pull request.
+- Open a pull request and let GitHub Actions validate the submission automatically.
 
 Start from:
 

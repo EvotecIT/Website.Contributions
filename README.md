@@ -42,20 +42,10 @@ The first article in this repository is `posts/en/how-to-contribute-to-evotec-bl
 4. Add cover images and screenshots inside the same post folder.
 5. Open a pull request.
 
-## Validate Locally
+## Automatic Validation
 
-From this repository:
-
-```powershell
-powerforge-web contributions validate --root .
-```
-
-The GitHub workflow validates pull requests automatically against the current PowerForge engine.
+Open a pull request when the article is ready. The GitHub workflow validates post structure, author profiles, image paths, alt text, and file sizes automatically.
 
 When a post is accepted, maintainers import it into the private website repository:
 
-```powershell
-powerforge-web contributions import --root C:\Support\GitHub\Website.Contributions --site-root C:\Support\GitHub\Website --publish
-```
-
-The import rewrites local image paths such as `./cover.jpg` and `./images/screenshot-01.png` into website asset paths.
+The import rewrites local image paths such as `./cover.jpg` and `./images/screenshot-01.png` into website asset paths. Contributors do not need access to the private website repository.
