@@ -28,7 +28,7 @@ This guide shows the shape of a strong contribution: one article folder, local i
 Keep the article and its images together:
 
 ```text
-posts/en/2026/my-article-slug/
+posts/en/my-article-slug/
   index.md
   cover.webp
   images/

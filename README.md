@@ -4,7 +4,7 @@
 
 This repository is the intake area for guest and community blog posts for Evotec websites.
 
-Writers work in self-contained post folders under `posts/<language>/<year>/<slug>/`. Keep the Markdown post, cover image, and supporting screenshots together so review stays simple and images do not get lost.
+Writers work in self-contained post folders under `posts/<language>/<slug>/`. Keep the Markdown post, cover image, and supporting screenshots together so review stays simple and images do not get lost.
 
 Recommended visibility is public when posts are meant to be submitted by outside writers. Keep drafts that must stay private out of this repository until you are ready to share them with maintainers.
 
@@ -20,12 +20,11 @@ authors/
 posts/
   README.md
   en/
-    2026/
-      how-to-contribute-to-evotec-blog/
-        index.md
-        cover.webp
-        images/
-          post-folder.webp
+    how-to-contribute-to-evotec-blog/
+      index.md
+      cover.webp
+      images/
+        post-folder.webp
 templates/
   author.yml
   post/index.md
@@ -33,13 +32,13 @@ templates/
 
 ## Starter Article
 
-The first article in this repository is `posts/en/2026/how-to-contribute-to-evotec-blog/`. It explains how contributors can write for evotec.xyz and acts as a real reference bundle with a cover image, supporting images, author credit, and Markdown front matter.
+The first article in this repository is `posts/en/how-to-contribute-to-evotec-blog/`. It explains how contributors can write for evotec.xyz and acts as a real reference bundle with a cover image, supporting images, author credit, and Markdown front matter.
 
 ## Writer Flow
 
 1. Fork this repository.
 2. Copy `templates/author.yml` into `authors/<your-slug>.yml`.
-3. Copy `templates/post/index.md` into `posts/<language>/<year>/<post-slug>/index.md`.
+3. Copy `templates/post/index.md` into `posts/<language>/<post-slug>/index.md`.
 4. Add cover images and screenshots inside the same post folder.
 5. Open a pull request.
 

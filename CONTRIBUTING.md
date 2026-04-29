@@ -5,7 +5,7 @@ Thanks for writing for Evotec. Keep your submission focused, practical, and repr
 ## New Post Checklist
 
 - Fork this repository and open a pull request from your fork.
-- Create one folder per post: `posts/<language>/<year>/<slug>/`.
+- Create one folder per post: `posts/<language>/<slug>/`.
 - Put the article in `index.md`.
 - Put the cover image beside `index.md` as `cover.jpg`, `cover.png`, or `cover.webp`.
 - Put screenshots in `images/`.
