@@ -21,21 +21,19 @@ posts/
   README.md
   en/
     2026/
-      example-post/
+      how-to-contribute-to-evotec-blog/
         index.md
-        cover.jpg
+        cover.webp
         images/
-          screenshot-01.png
+          post-folder.webp
 templates/
   author.yml
   post/index.md
-examples/
-  how-to-contribute-to-evotec-blog/
 ```
 
-## Visual Example
+## Starter Article
 
-See `examples/how-to-contribute-to-evotec-blog/` for an ignored demo post with a cover image, supporting images, and complete Markdown. It is intentionally outside `posts/`, so validation and import do not publish it.
+The first article in this repository is `posts/en/2026/how-to-contribute-to-evotec-blog/`. It explains how contributors can write for evotec.xyz and acts as a real reference bundle with a cover image, supporting images, author credit, and Markdown front matter.
 
 ## Writer Flow
 
