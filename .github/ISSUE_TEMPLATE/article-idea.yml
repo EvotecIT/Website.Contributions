@@ -1,0 +1,34 @@
+name: Article idea
+description: Suggest a blog post before writing it.
+title: "[Idea]: "
+labels:
+  - article-idea
+body:
+  - type: input
+    id: title
+    attributes:
+      label: Proposed title
+      placeholder: Building DHCP Reports with PowerShell
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What should the article cover?
+      description: Describe the problem, audience, and practical outcome.
+    validations:
+      required: true
+  - type: input
+    id: author
+    attributes:
+      label: Author
+      placeholder: Your name or GitHub handle
+    validations:
+      required: false
+  - type: textarea
+    id: assets
+    attributes:
+      label: Expected screenshots or diagrams
+      description: List images you expect to include, if known.
+    validations:
+      required: false

@@ -1,0 +1,5 @@
+/.powerforge/
+/_site/
+/_temp/
+*.tmp
+*.log

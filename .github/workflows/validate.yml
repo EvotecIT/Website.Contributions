@@ -1,0 +1,41 @@
+name: Validate Contributions
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout contributions
+        uses: actions/checkout@v4
+        with:
+          path: contributions
+
+      - name: Checkout PowerForge engine
+        uses: actions/checkout@v4
+        with:
+          repository: EvotecIT/PSPublishModule
+          path: engine
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build PowerForge.Web
+        shell: bash
+        run: |
+          dotnet build engine/PowerForge.Web.Cli/PowerForge.Web.Cli.csproj -c Release -f net8.0
+
+      - name: Validate contribution bundles
+        shell: bash
+        run: |
+          dotnet engine/PowerForge.Web.Cli/bin/Release/net8.0/PowerForge.Web.Cli.dll contributions validate --root contributions
