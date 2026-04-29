@@ -1,6 +1,6 @@
 ---
 title: "How to contribute a post to evotec.xyz"
-description: "A beginner-friendly guide to writing and submitting a post to evotec.xyz using the public Website.Contributions repository."
+description: "A beginner-friendly guide to writing and submitting a practical article for evotec.xyz."
 date: "2026-04-29"
 language: "en"
 authors:
@@ -83,7 +83,7 @@ Good topics include:
 
 ## Step 1: Open the Repository
 
-Start with the public contribution repository:
+Start with the contribution repository:
 
 ```text
 https://github.com/EvotecIT/Website.Contributions
@@ -678,10 +678,7 @@ If the article is accepted:
 
 - maintainers merge or accept the contribution
 - maintainers import it into the production website
-- the production website remains controlled from the private repository
 - your author credit stays attached to the article
-
-You do **not** need access to the private production repository.
 
 That part is handled by maintainers.
 
@@ -761,9 +758,9 @@ And here is how it references an image:
 
 ## FAQ
 
-### Do I need access to the private website repository?
+### Do I need access to the website repository?
 
-No. You only need the public contribution repository.
+No. Start in the contribution repository. Maintainers handle the publishing step after review.
 
 ### Can I write in English?
 
@@ -883,10 +880,10 @@ Before you open the pull request, check this list:
 
 The contribution process is meant to be simple:
 
-- write in public
-- review in public
+- write in the contribution repository
+- improve the article through review
 - publish through maintainers
-- keep the production website safe
+- keep publishing safe and consistent
 - give contributors proper credit
 
 If you have something useful to share, even if it is a small practical tip, that is enough to start.
