@@ -25,7 +25,13 @@ posts/
       cover.webp
       images/
         article-folder-structure.webp
+        article-front-matter-explained.webp
+        author-profile-explained.webp
         contribution-workflow.webp
+        final-checklist.webp
+        github-web-ui-path.webp
+        pr-review-lifecycle.webp
+        where-images-go.webp
 templates/
   author.yml
   post/index.md
