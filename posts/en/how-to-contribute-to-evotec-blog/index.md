@@ -1,6 +1,6 @@
 ---
-title: "How to Contribute a Blog Post to evotec.xyz"
-description: "A practical walkthrough for preparing a guest post with Markdown, local images, author credit, and pull request review."
+title: "Write for evotec.xyz"
+description: "A friendly guide to contributing a guest post to evotec.xyz with Markdown, local images, author credit, and pull request review."
 date: "2026-05-01"
 language: "en"
 authors:
@@ -17,45 +17,49 @@ image_alt: "Illustration of a pull request card, Markdown document, and image th
 draft: true
 ---
 
-Evotec articles are written in Markdown, reviewed through GitHub pull requests, and imported into the private website only after maintainers accept them. This keeps the publishing workflow open to contributors while protecting the production website.
+evotec.xyz has always been built around practical engineering notes: scripts that solved a real problem, migration lessons, odd edge cases, and the kind of PowerShell details that save someone else an afternoon.
 
-This guide shows the shape of a strong contribution: one article folder, local images, clear author credit, and a small review surface.
+If you have something useful to share, you do not need access to the private website repository. Write the article in this public contribution repo, open a pull request, and we will review it there. Once it is accepted, maintainers import it into the production site.
+
+The goal is simple: make writing approachable, keep review predictable, and give proper credit to the people who help make the site better.
 
 ![A clean folder structure with a Markdown article, image thumbnail, screenshots folder, and author profile card](./images/post-folder.webp)
 
-## 1. Create One Folder For The Article
+## 1. Keep Each Article In One Folder
 
-Keep the article and its images together:
+Put the Markdown file, cover image, and screenshots in the same article folder:
 
 ![A visual folder structure showing one article folder with index.md, cover.webp, and an images folder](./images/article-folder-structure.webp)
 
-This makes review easier and prevents images from being separated from the article they belong to. It also lets the importer copy everything into stable website asset paths.
+That small bit of structure makes the whole process calmer. Reviewers can see the article and its images together, and the publishing importer can copy everything into stable website paths without guessing where files belong.
 
-## 2. Add Author Credit
+## 2. Tell Readers Who You Are
 
-Each writer should have one profile in `authors/<author-slug>.yml`. Posts reference authors by slug:
+Every writer gets an author profile in `authors/<author-slug>.yml`. Your article references that slug:
 
 ```yaml
 authors:
   - your-name
 ```
 
-Author profiles can include an X profile, LinkedIn profile, and personal website.
+Author profiles can include your role, X profile, LinkedIn profile, and personal website. If you helped write the article, you should get visible credit for it.
 
-## 3. Use Local Images With Alt Text
+## 3. Use Images That Belong To The Article
 
-Use local relative image links:
+Use local relative image links in Markdown:
 
 ```markdown
 ![Useful description of the screenshot](./images/screenshot-01.webp)
 ```
 
-Remote images, tracking pixels, raw HTML images, and SVG uploads are not accepted for normal posts. Keep screenshots focused on the thing you are explaining and crop out unrelated personal or customer data.
+Please keep images local to the article folder. Remote images disappear, change, or track readers in ways we do not want. Screenshots should be cropped to the thing you are explaining, and any personal, customer, tenant, or secret data should be removed before you open a pull request.
 
 ![A review workflow board with checkmarks, comment bubbles, and a publishing arrow](./images/review-workflow.webp)
 
 ## 4. Open A Pull Request
 
-Open a pull request from your fork when the article is ready. GitHub Actions will validate the post structure, author profile, image paths, alt text, and file sizes automatically. Maintainers review the content, ask for changes when needed, merge accepted posts, and import them into the private website repository.
+When the article feels ready, open a pull request from your fork. GitHub Actions will check the post structure, author profile, image paths, alt text, and file sizes automatically.
 
-That is the whole contract: contributors get a simple public writing workflow, and the production site stays maintainer-controlled.
+From there, we review it like any other contribution. Sometimes that means a quick merge. Sometimes we may ask for a clearer screenshot, a safer example, or a little more context. Once the post is accepted, maintainers import it into evotec.xyz and keep the production site controlled from the private repository.
+
+That is the whole idea: a public place to write, a protected path to publish, and a better way for people to share useful work with the Evotec community.
