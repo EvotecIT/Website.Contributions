@@ -42,10 +42,7 @@ If you already know GitHub and Markdown, this is the short version:
 1. Fork the `Website.Contributions` repository.
 2. Create your author profile in `authors/<your-slug>.yml`.
 3. Create your article folder in `posts/<language>/<article-slug>/`.
-4. Add:
-   - `index.md`
-   - `cover.webp` when possible, or another accepted local image format when needed
-   - `images/` folder for screenshots and article images
+4. Add `index.md`, a cover image, and an `images/` folder for screenshots and article images.
 5. Write the article in Markdown.
 6. Use local image paths only.
 7. Commit your changes.
