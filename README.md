@@ -1,60 +1,70 @@
-# Evotec Website Contributions
+# Write for evotec.xyz
 
 ![Evotec website contributors quality card](assets/website-contributors-social.png)
 
-This repository is the intake area for guest and community blog posts for Evotec websites.
+Evotec is opening evotec.xyz to more practical voices from the community. If you have a useful PowerShell script, a migration lesson, a troubleshooting story, an odd edge case, or a clear technical note that could save someone else time, this repository is where that article can begin.
 
-Writers work in self-contained post folders under `posts/<language>/<slug>/`. Keep the Markdown post, cover image, and supporting screenshots together so review stays simple and images do not get lost.
+You do not need to arrive with a perfect post. Bring the useful idea, include the context, keep the images with the article, and open a pull request. Maintainers can help polish structure, wording, screenshots, metadata, and publishing details.
 
-Recommended visibility is public when posts are meant to be submitted by outside writers. Keep drafts that must stay private out of this repository until you are ready to share them with maintainers.
+## Full Guide
 
-## Structure
+The full contributor guide is currently kept inside this repository:
+
+[How to contribute a post to evotec.xyz](posts/en/how-to-contribute-to-evotec-blog/index.md)
+
+Once the article is published on evotec.xyz, this README can link to the live blog post instead.
+
+![Contribution workflow from idea to pull request, review, and publishing](posts/en/how-to-contribute-to-evotec-blog/images/contribution-workflow.webp)
+
+## How It Works
+
+1. Fork this repository.
+2. Create or update your author profile in `authors/<your-slug>.yml`.
+3. Create your article folder in `posts/<language>/<article-slug>/`.
+4. Put `index.md`, the cover image, and article images in that folder.
+5. Write the article in Markdown.
+6. Open a pull request.
+7. Review feedback and update the article when needed.
+
+Use `posts/en/...` for English articles and `posts/pl/...` for Polish articles.
+
+## Article Folder
+
+Keep every article self-contained:
+
+```text
+posts/en/my-article-slug/
+  index.md
+  cover.webp
+  images/
+    screenshot-01.webp
+    diagram-01.webp
+```
+
+This makes review easier and keeps images from being separated from the article they belong to.
+
+Accepted local image formats are PNG, JPG, JPEG, WEBP, and GIF. WEBP is preferred for covers and most screenshots when it keeps the detail readable.
+
+## Repository Structure
 
 ```text
 .github/
-  ISSUE_TEMPLATE/
-  workflows/validate.yml
+  workflows/
 authors/
-  README.md
   your-name.yml
 posts/
-  README.md
   en/
     how-to-contribute-to-evotec-blog/
       index.md
       cover.webp
       images/
-        article-folder-structure.webp
-        article-front-matter-explained.webp
-        author-profile-explained.webp
-        contribution-workflow.webp
-        final-checklist.webp
-        github-web-ui-path.webp
-        pr-review-lifecycle.webp
-        where-images-go.webp
 templates/
   author.yml
   post/index.md
 ```
 
-## Starter Article
+## Validation
 
-The first article in this repository is `posts/en/how-to-contribute-to-evotec-blog/`. It explains how contributors can write for evotec.xyz and acts as a real reference bundle with a cover image, supporting images, author credit, and Markdown front matter.
+Pull requests are checked automatically. Validation looks at the article structure, author profile, image paths, alt text, supported image formats, and file sizes.
 
-## Writer Flow
-
-1. Fork this repository.
-2. Copy `templates/author.yml` into `authors/<your-slug>.yml`.
-3. Copy `templates/post/index.md` into `posts/<language>/<post-slug>/index.md`.
-4. Add cover images and screenshots inside the same post folder.
-5. Open a pull request.
-
-Use `posts/en/...` for English articles and `posts/pl/...` for Polish articles. Accepted local image formats are PNG, JPG, JPEG, WEBP, and GIF. Prefer WEBP for covers and most screenshots when it preserves the needed detail.
-
-## Automatic Validation
-
-Open a pull request when the article is ready. The GitHub workflow validates post structure, author profiles, image paths, alt text, and file sizes automatically.
-
-When a post is accepted, maintainers import it into the private website repository:
-
-The import rewrites local image paths such as `./cover.jpg` and `./images/screenshot-01.png` into website asset paths. Contributors do not need access to the private website repository.
+If validation fails, read the message, update the article, and push again. The goal is to make publishing predictable, not to make contributing difficult.
