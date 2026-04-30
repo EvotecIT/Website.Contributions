@@ -51,6 +51,7 @@ Accepted local image formats are PNG, JPG, JPEG, WEBP, and GIF. WEBP is preferre
 .github/
   workflows/
 authors/
+  images/
   your-name.yml
 posts/
   en/
@@ -66,5 +67,7 @@ templates/
 ## Validation
 
 Pull requests are checked automatically. Validation looks at the article structure, author profile, image paths, alt text, supported image formats, and file sizes.
+
+Author photos are optional. If you add one, keep it under `authors/images/` and reference it from the author profile with a local path such as `avatar: "./images/your-name.webp"`.
 
 If validation fails, read the message, update the article, and push again. The goal is to make publishing predictable, not to make contributing difficult.

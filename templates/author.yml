@@ -1,6 +1,8 @@
 name: "Your Name"
 slug: "your-name"
 title: "Your role or short bio"
+avatar: "./images/your-name.webp"
 x: "https://x.com/your-handle"
 linkedin: "https://www.linkedin.com/in/your-profile/"
+github: "https://github.com/your-handle"
 website: "https://example.com/"
