@@ -183,12 +183,16 @@ Example:
 name: "Your Name"
 slug: "your-name"
 title: "Your role or short bio"
+avatar: "./images/your-name.webp"
 x: "https://x.com/your-handle"
 linkedin: "https://www.linkedin.com/in/your-profile/"
+github: "https://github.com/your-handle"
 website: "https://example.com/"
 ```
 
-You do **not** need every field. If you do not use X, LinkedIn, or a personal website, leave out that field.
+You do **not** need every field. If you do not use X, LinkedIn, GitHub, a personal website, or an avatar, leave out that field.
+
+If you want to show a profile photo, place a square image under `authors/images/` and reference it from the author profile with `avatar: "./images/your-name.webp"`. Local avatars are optional and are imported into the website together with the author catalog.
 
 A smaller valid example can look like this:
 
@@ -862,6 +866,7 @@ Use `en` for English and `pl` for Polish. If you are unsure, use `en`.
 Before you open the pull request, check this list:
 
 - [ ] I created or updated my author profile in `authors/`
+- [ ] Optional author avatar is under `authors/images/` and referenced with a local path
 - [ ] My article is inside `posts/<language>/<article-slug>/`
 - [ ] The article file is named `index.md`
 - [ ] The cover image is next to `index.md`

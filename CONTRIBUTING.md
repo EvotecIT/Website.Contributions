@@ -12,6 +12,7 @@ Thanks for writing for Evotec. Keep your submission focused, practical, and repr
 - Use Markdown image syntax with useful alt text.
 - Do not use SVG files, scripts, HTML snippets, tracking pixels, or remote images.
 - Add or update your author profile in `authors/<slug>.yml`.
+- Optional author photos should live in `authors/images/` and be referenced with `avatar: "./images/<slug>.webp"`.
 - Open a pull request and let GitHub Actions validate the submission automatically.
 
 Start from:
@@ -51,3 +52,5 @@ Use local relative paths:
 ```
 
 Allowed image formats are PNG, JPG, JPEG, WEBP, and GIF. Keep individual files under 5 MB and the whole post image set under 30 MB.
+
+The same image formats are accepted for optional author photos.
