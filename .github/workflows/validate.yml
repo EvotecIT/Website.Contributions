@@ -23,6 +23,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: EvotecIT/PSPublishModule
+          # Temporary until EvotecIT/PSPublishModule#333 is merged.
+          ref: codex/contribution-author-metadata
           path: engine
 
       - name: Setup .NET
