@@ -38,4 +38,4 @@ jobs:
       - name: Validate contribution bundles
         shell: bash
         run: |
-          dotnet engine/PowerForge.Web.Cli/bin/Release/net8.0/PowerForge.Web.Cli.dll contributions validate --root contributions
+          dotnet engine/PowerForge.Web.Cli/bin/Release/net8.0/PowerForge.Web.Cli.dll contributions validate --root contributions --fail-on-warnings
