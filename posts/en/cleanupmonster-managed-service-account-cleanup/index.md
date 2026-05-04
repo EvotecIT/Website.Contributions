@@ -63,7 +63,7 @@ Install-Module CleanupMonster -Force
 Import-Module CleanupMonster
 ```
 
-For reporting-only runs you still need enough permission to read the attributes you use in your filters. In many environments that includes `LastLogonDate`, `PasswordLastSet`, `WhenCreated`, `Enabled`, and the service account distinguished name. If the environment has delegated or hardened reads, validate the report before trusting the candidate list.
+For reporting-only runs you still need enough permission to read the attributes you use in your filters. In many environments that includes `LastLogonDate`, `PasswordLastSet`, `WhenCreated`, `Enabled`, `PrincipalsAllowedToRetrieveManagedPassword`, and the service account distinguished name. If the environment has delegated or hardened reads, validate the report before trusting the candidate list.
 
 ## Step 1. Start with a report-only run
 
@@ -81,7 +81,7 @@ $output = Invoke-ADServiceAccountsCleanup `
     -ShowHTML
 
 $output.CurrentRun |
-    Format-Table SamAccountName, ObjectClass, Action, ActionStatus, LastLogonDays -AutoSize
+    Format-Table SamAccountName, ObjectClass, Action, ActionStatus, LastLogonDays, PrincipalsAllowedToRetrieveManagedPasswordCount -AutoSize
 ```
 
 This gives you a candidate list without touching AD. Review it with the application owners before you enable real actions.
@@ -143,7 +143,30 @@ That makes the report more honest. Missing data becomes a policy decision, not a
 
 ![CleanupMonster service-account policy knobs](./images/service-account-policy-knobs.webp)
 
-## Step 4. Disable before delete
+## Step 4. Check gMSA password retrieval assignments
+
+For gMSAs, timestamp age is not the only signal worth reviewing. The account can also expose which principals are allowed to retrieve its managed password. If a gMSA still has servers or groups assigned there, treat that as an ownership signal and review it before taking action.
+
+CleanupMonster reports the retrieval-principal count, and you can optionally require that a gMSA has no retrieval principals before it is disabled or deleted:
+
+```powershell
+Invoke-ADServiceAccountsCleanup `
+    -Disable `
+    -DisableLastLogonDateMoreThan 90 `
+    -DisableNoPrincipalsAllowedToRetrieveManagedPassword `
+    -IncludeAccounts 'gmsa-lab-*' `
+    -DisableLimit 1 `
+    -WhatIfDisable `
+    -ShowHTML
+```
+
+The matching delete switch is:
+
+```powershell
+-DeleteNoPrincipalsAllowedToRetrieveManagedPassword
+```
+
+## Step 5. Disable before delete
 
 For most environments, the first real action should be disable:
 
@@ -169,7 +192,7 @@ $output = Invoke-ADServiceAccountsCleanup @configuration
 
 Remove `WhatIfDisable` only after the report is boring and expected. Keep the limit low for the first scheduled runs.
 
-## Step 5. Delete with separate criteria
+## Step 6. Delete with separate criteria
 
 Deletion should have stricter criteria than disabling:
 
