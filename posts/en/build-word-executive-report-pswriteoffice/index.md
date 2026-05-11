@@ -1,6 +1,6 @@
 ---
 title: "Build a polished Word executive report from PowerShell"
-description: "Create a complete Word report with a generated hero, table of contents, sections, conditional tables, charts, approval controls, footnotes, endnotes, bookmarks, hyperlinks, watermark, and document metadata using PSWriteOffice."
+description: "Create a complete Word report with a native opening panel, table of contents, sections, conditional tables, charts, approval controls, footnotes, endnotes, bookmarks, hyperlinks, watermark, read-back validation, and document metadata using PSWriteOffice."
 date: "2026-05-11"
 language: "en"
 authors:
@@ -19,9 +19,9 @@ image_alt: "Generated hero illustration of a complete Word executive report with
 draft: true
 ---
 
-Word automation is easy when the target is a plain export. It becomes much more useful when the output is something a manager, auditor, or service owner can open, navigate, review, and approve without asking for the original script.
+Word automation is easy when the target is a plain export. It becomes much more useful when the output is something a manager, auditor, or service owner can open, navigate, review, approve, and reuse without asking for the original script.
 
-This showcase builds a complete executive service-health report from PowerShell objects. The generated document is not a screenshot or a blob: it is an editable `.docx` with real sections, headings, tables, charts, bookmarks, hyperlinks, content controls, footnotes, endnotes, metadata, and a watermark.
+This showcase builds a complete executive service-health report from PowerShell objects. It uses the same operational story as the Excel dashboard and PowerPoint brief in this series: services, owners, health signals, incidents, trends, and next actions. The generated document is not a screenshot or a blob. It is an editable `.docx` with real sections, headings, tables, charts, bookmarks, hyperlinks, content controls, footnotes, endnotes, metadata, and a watermark.
 
 ![Complete Word report preview showing navigation, scorecards, chart, approval controls, and notes](./images/executive-report-banner.png)
 
@@ -29,7 +29,7 @@ This showcase builds a complete executive service-health report from PowerShell 
 
 The full script lives in `Examples/Showcase/Showcase-Word-ExecutiveReport.ps1` in the PSWriteOffice repository. It creates a report with:
 
-- a strong opening section with a generated banner image
+- a native opening panel built from Word paragraphs and tables
 - header and footer content
 - built-in and custom document properties
 - a Word table of contents
@@ -66,11 +66,22 @@ $services = @(
 )
 ```
 
-## Composing The Document
+## Writing The Document
 
-The Word DSL keeps the script close to how people think about reports: sections, headings, paragraphs, tables, charts, and review controls.
+The Word DSL keeps the script close to how people think about reports: sections, headings, paragraphs, tables, charts, and review controls. The first page is intentionally Office-native. It does not depend on `System.Drawing`, desktop Word, or a pre-rendered bitmap.
 
 ```powershell
+$executiveSignals = @(
+    [pscustomobject]@{
+        Signal = 'Audience'
+        Detail = 'Technology leadership, service owners, and operational reviewers'
+    }
+    [pscustomobject]@{
+        Signal = 'Decision'
+        Detail = 'Approve the focused remediation plan for high-friction services'
+    }
+)
+
 New-OfficeWord -Path $path {
     WordSection {
         WordHeader {
@@ -84,7 +95,8 @@ New-OfficeWord -Path $path {
         Set-OfficeWordDocumentProperty -Name ShowcaseProduct -Value 'Word' -Custom
 
         WordParagraph -Text 'Executive Service Health Report' -Style Heading1
-        WordImage -Path $heroPath -Width 640 -Height 147
+        WordParagraph 'Generated from PowerShell objects with PSWriteOffice and OfficeIMO.'
+        WordTable -InputObject $executiveSignals -Style GridTable5DarkAccent1 -Layout AutoFitToWindow
 
         WordParagraph {
             WordText 'This report turns service-health objects into an editable Word document.'
@@ -115,6 +127,8 @@ WordTable -InputObject $services -Style GridTable4Accent1 -Layout AutoFitToWindo
 
 That is the difference between "we exported data" and "we created something someone can use in a review meeting."
 
+![Word service scorecard preview showing conditional table rows and next-action columns](./images/scorecard-preview.png)
+
 ## Charts, Notes, And Approvals
 
 The showcase also demonstrates a Word line chart, approval controls, reviewer notes, and internal navigation.
@@ -144,12 +158,23 @@ WordParagraph {
 Approval fields are created as Word content controls, so the output is still easy to finish manually:
 
 ```powershell
-WordParagraph { WordContentControl -Text 'Executive sponsor' -Alias 'SponsorName' }
-WordParagraph { WordDatePicker -Date (Get-Date) -Alias 'ApprovalDate' }
-WordParagraph { WordCheckBox -Alias 'ApprovedForDistribution' }
+WordParagraph {
+    WordText 'Approved for publication: '
+    WordCheckBox -Alias 'ApprovedForPublication' -Tag 'approval-publish'
+}
+WordParagraph {
+    WordText 'Next review date: '
+    WordDatePicker -Date (Get-Date '2026-06-15') -Alias 'NextReviewDate'
+}
+WordParagraph {
+    WordText 'Review status: '
+    WordDropDownList -Items 'Draft','Ready for review','Approved' -Alias 'ReviewStatus'
+}
 ```
 
-## Read-Back Proof
+![Word approval controls and read-back summary preview](./images/approval-readback-preview.png)
+
+## Reading And Validating The Output
 
 The example finishes by reopening the document and reporting what was created. This is useful for tests, demos, and CI logs.
 
@@ -169,6 +194,40 @@ finally {
     Close-OfficeWord -Document $document
 }
 ```
+
+That read-back step is more than a demo flourish. It lets you fail a build if the report accidentally loses its chart, content controls, or reviewer notes.
+
+```powershell
+if ($document.Charts.Count -lt 1) {
+    throw 'Expected at least one chart in the executive report.'
+}
+
+if ($document.Tables.Count -lt 3) {
+    throw 'Expected opening, scorecard, and action-plan tables.'
+}
+```
+
+## Performance And Scale
+
+The fastest Word automation is not usually about micro-optimizing a paragraph. It is about using the right shape:
+
+- Build data as PowerShell objects first, then pass arrays into `WordTable` and `WordChart`.
+- Keep expensive read-back validation focused on structure, counts, and key fields.
+- Use tables and styles instead of thousands of individually formatted runs.
+- Generate without Microsoft Word installed, which keeps CI and server usage realistic.
+- Save once at the end of the composition block instead of opening and closing the file repeatedly.
+
+For large reports, split the document into predictable sections: summary, findings, evidence, action plan, and appendix. That keeps generation fast and keeps the final document easy to review.
+
+## More Report Ideas
+
+The same pattern works for more than service health:
+
+- Compliance attestation with owner sign-off controls.
+- Change advisory reports with risk tables, bookmarks, and approval date pickers.
+- Active Directory or Microsoft 365 assessments with findings, evidence links, and remediation tables.
+- Monthly operations packs with trend charts, generated TOC, and hidden reviewer notes.
+- Customer-facing delivery reports where metadata and internal navigation matter.
 
 ## Why This Is A Product Showcase
 

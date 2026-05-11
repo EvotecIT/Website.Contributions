@@ -23,6 +23,8 @@ PowerPoint automation gets painful when every slide is a coordinate exercise. Yo
 
 The newer OfficeIMO PowerPoint designer APIs move the problem up a level: describe the deck semantically, then let the engine choose layouts and render a complete editable `.pptx`. PSWriteOffice now exposes an initial bridge to that designer layer, so PowerShell can build decks from objects without turning every script into a design math project.
 
+This showcase uses the same service-health story as the Word report and Excel dashboard. The deck is the briefing layer: it turns service data, delivery steps, coverage areas, metrics, and next actions into slides that can be presented, edited, imported into another deck, or used as a starting template.
+
 ![PowerPoint process preview showing the semantic path from objects to publishable slides](./images/process-slide.png)
 
 ## What The Example Builds
@@ -110,6 +112,15 @@ $plan = PptDeckPlan {
 
 This is the important shift: the script describes intent. The designer layer handles visual composition.
 
+## Writing Slides Two Ways
+
+The example uses two complementary writing modes:
+
+- Semantic slides through `PptDeckPlan` and `PptDesignerDeck`.
+- Explicit evidence slides through `PptSlide`, `PptChart`, `PptTable`, and `PptNotes`.
+
+That split matters. Narrative slides benefit from designer composition. Evidence slides often need precise chart, table, and notes placement.
+
 ## Rendering Through The Designer Bridge
 
 The deck is rendered with `PptDesignerDeck`, which maps the PSWriteOffice plan into OfficeIMO's designer/deck-plan model.
@@ -196,6 +207,60 @@ Get-OfficePowerPointSlide -Presentation $ppt -Index 6 |
 ```
 
 The output is not a static export. It is a deck you can continue editing, presenting, importing into another deck, or using as a template for future automation.
+
+## Reading And Validating The Deck
+
+The showcase finishes by reading the generated deck back. That makes the example useful in CI and in demos because you can prove the deck is more than a file on disk.
+
+```powershell
+$presentation = Get-OfficePowerPoint -FilePath $path
+try {
+    Get-OfficePowerPointSlideSummary -Presentation $presentation |
+        Select-Object Index, Title, ShapeCount, TextBoxCount, ChartCount, TableCount, HasNotes
+}
+finally {
+    Close-OfficePowerPoint -Presentation $presentation
+}
+```
+
+You can turn the same read-back into assertions:
+
+```powershell
+$summary = @(Get-OfficePowerPointSlideSummary -Presentation $presentation)
+
+if (($summary | Where-Object ChartCount -gt 0).Count -lt 1) {
+    throw 'Expected at least one chart slide.'
+}
+
+if (($summary | Where-Object HasNotes).Count -lt 2) {
+    throw 'Expected speaker notes for presenter handoff.'
+}
+```
+
+That is the PowerPoint equivalent of workbook summaries and Word read-back checks: generate, inspect, and fail early if the artifact loses structure.
+
+## Performance And Scale
+
+PowerPoint generation performance is mostly about avoiding unnecessary layout work and repeated file opens.
+
+- Build the deck plan in memory, then render once.
+- Use semantic sections for narrative content instead of manually placing every shape.
+- Use explicit chart/table slides only where the evidence needs it.
+- Keep images and background assets sized reasonably before embedding.
+- Add notes during generation instead of reopening slides later.
+- Validate slide summaries instead of parsing every Open XML part in routine tests.
+
+For a larger briefing pack, split the deck into cover, story, evidence, appendix, and handoff sections. That keeps the generated file understandable and keeps future automation easy to extend.
+
+## More Deck Ideas
+
+The same pattern can produce:
+
+- monthly service review decks with charts, owner actions, and speaker notes
+- customer delivery packs with milestones, capabilities, case studies, and appendix tables
+- security or compliance briefings with risk trends and remediation roadmaps
+- project status decks generated from issue trackers or planning systems
+- reusable consulting templates where data changes but the story structure stays stable
 
 ## What This Enables
 

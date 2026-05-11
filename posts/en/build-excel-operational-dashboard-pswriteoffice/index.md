@@ -21,7 +21,7 @@ draft: true
 
 Good Excel automation is not about pushing two rows into a workbook. A useful workbook gives readers a starting point, a way to drill into details, and enough formatting to find risk quickly without losing the underlying data.
 
-This showcase builds a multi-sheet operational dashboard from PowerShell objects. It creates a summary page, service detail table, trend sheet, owner summary, hidden notes sheet, generated table of contents, internal backlinks, evidence hyperlinks, formulas, validation, conditional formatting, charts, page setup, headers, footers, and a structural summary check.
+This showcase builds a multi-sheet operational dashboard from PowerShell objects. It uses the same service-health scenario as the Word report and PowerPoint brief: services, owners, health scores, incidents, trend data, and remediation actions. It creates a summary page, service detail table, trend sheet, owner summary, hidden notes sheet, generated table of contents, internal backlinks, evidence hyperlinks, formulas, validation, conditional formatting, charts, page setup, headers, footers, and a structural summary check.
 
 ![Full Excel operational dashboard preview showing KPI tiles, tables, charts, links, and hidden notes](./images/summary-status-chart.png)
 
@@ -39,6 +39,33 @@ It produces a workbook with these sheets:
 - `Notes`: hidden generation notes for audit/debugging
 
 That shape matters because people rarely consume Excel reports in one direction. Some readers start with the summary, some filter the detail table, and some want to jump straight to ownership or trend data.
+
+## Writing From Objects
+
+The workbook starts with normal PowerShell objects. In real usage, those objects might come from REST APIs, Microsoft Graph, monitoring probes, CSV imports, Active Directory queries, or previous PSWriteOffice reads.
+
+```powershell
+$services = @(
+    [pscustomobject]@{
+        Service = 'Identity Sync'
+        Owner = 'Platform'
+        Health = 98
+        Incidents = 1
+        Status = 'Healthy'
+        Evidence = 'identity-sync'
+    }
+    [pscustomobject]@{
+        Service = 'Remote Access'
+        Owner = 'Security'
+        Health = 76
+        Incidents = 7
+        Status = 'Risk'
+        Evidence = 'remote-access'
+    }
+)
+```
+
+The important part is that the script writes the workbook as Excel structure, not as a flat file with decoration. Tables remain tables, formulas remain formulas, hyperlinks remain hyperlinks, and the workbook can keep living after generation.
 
 ## Building The Summary Sheet
 
@@ -151,7 +178,7 @@ ExcelSheet 'Notes' {
 }
 ```
 
-## Proving The Workbook Shape
+## Reading And Proving The Workbook Shape
 
 The showcase also adds `Get-OfficeExcelSummary`, which is the practical "what did we actually generate?" command.
 
@@ -178,6 +205,47 @@ For the generated dashboard, the summary reports:
 - 1 hidden sheet
 
 That makes the example useful in demos and CI logs. It also gives you a fast way to explain what a workbook contains without opening Excel.
+
+For data-level checks, the same workbook can be read back with range and table readers:
+
+```powershell
+$serviceRows = Get-OfficeExcelRange `
+    -Path $path `
+    -Sheet 'Services' `
+    -Range 'A1:H9'
+
+$usedRange = Get-OfficeExcelUsedRange `
+    -Path $path `
+    -Sheet 'Services' `
+    -AsDataTable
+
+$namedRanges = Get-OfficeExcelNamedRange -Path $path
+```
+
+That gives you both kinds of validation: "is the workbook shaped correctly?" and "does the data still say what I expected?"
+
+## Performance And Scale
+
+The dashboard is intentionally built around table and range operations because they scale better than cell-by-cell scripting.
+
+- Use `ExcelTable -Data $objects` for rectangular datasets.
+- Use formulas for values Excel should keep recalculating after the file is opened.
+- Use table-based charts so the chart follows the data shape.
+- Apply conditional formatting to ranges instead of formatting every cell in a loop.
+- Keep read-back validation focused on summary counts, used ranges, table names, and critical values.
+- Use hidden sheets for generation notes and audit metadata instead of writing separate sidecar files.
+
+For larger inventories, split visible sheets by workflow: summary, details, ownership, trend, and notes. That keeps the workbook fast to open and easier to filter.
+
+## More Workbook Ideas
+
+Once the pattern is in place, the same commands can generate:
+
+- inventory dashboards with asset detail, owner queue, and stale-data warnings
+- security posture workbooks with risk scoring, evidence links, and action tracking
+- migration trackers with validation lists, conditional formatting, and grouped owners
+- service availability scorecards with trend charts and monthly snapshots
+- workbook QA reports where `Get-OfficeExcelSummary` verifies tables, charts, links, and hidden sheets
 
 ## Honest Compatibility Notes
 
