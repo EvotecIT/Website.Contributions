@@ -75,8 +75,8 @@ The summary sheet combines formulas, a styled table, chart formatting, freeze pa
 New-OfficeExcel -Path $path {
     ExcelSheet 'Summary' {
         ExcelCell -Address 'A1' -Value 'Operational Dashboard' -Bold -FontSize 20
-        ExcelCell -Address 'B4' -Formula 'AVERAGE(Services!C2:C9)' -NumberFormat '0.0'
-        ExcelCell -Address 'B5' -Formula 'SUM(Services!D2:D9)'
+        ExcelCell -Address 'B4' -Formula 'AVERAGE(Services!B2:B9)' -NumberFormat '0.0'
+        ExcelCell -Address 'B5' -Formula 'SUM(Services!C2:C9)'
         ExcelCell -Address 'B6' -Formula 'AVERAGE(Trend!D2:D7)' -NumberFormat '0%'
 
         ExcelTable -Data $legend `
@@ -86,11 +86,18 @@ New-OfficeExcel -Path $path {
             -TableStyle 'TableStyleMedium4' `
             -AutoFit
 
-        ExcelChart -Range 'A7:B10' `
+        ExcelTable -Data $statusMix `
+            -TableName 'StatusMix' `
+            -StartRow 7 `
+            -StartColumn 6 `
+            -TableStyle 'TableStyleMedium4' `
+            -AutoFit
+
+        ExcelChart -Range 'F7:G10' `
             -Row 7 `
-            -Column 6 `
+            -Column 9 `
             -Type Doughnut `
-            -Title 'Status Meaning Mix' |
+            -Title 'Status Mix' |
             Set-OfficeExcelChartLegend -Position Right |
             Set-OfficeExcelChartDataLabels -ShowValue $true -ShowCategoryName $true |
             Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
@@ -108,7 +115,7 @@ The `Services` sheet is designed for action. It uses a structured table, validat
 
 ```powershell
 ExcelSheet 'Services' {
-    ExcelTable -Data $services `
+    ExcelTable -Data $serviceRows `
         -TableName 'ServiceHealth' `
         -StartRow 1 `
         -StartColumn 1 `
@@ -117,9 +124,15 @@ ExcelSheet 'Services' {
 
     ExcelFreeze -TopRows 1
     ExcelValidationList -Range 'F2:F50' -Values 'Healthy','Watch','Risk'
-    ExcelConditionalColorScale -Range 'C2:C9' -StartColor '#F8696B' -EndColor '#63BE7B'
-    ExcelConditionalDataBar -Range 'D2:D9' -Color '#5B9BD5'
-    ExcelConditionalIconSet -Range 'C2:C9' -IconSet ThreeTrafficLights1 -Reverse $true
+    ExcelConditionalColorScale -Range 'B2:B9' -StartColor '#F8696B' -EndColor '#63BE7B'
+    ExcelConditionalDataBar -Range 'C2:C9' -Color '#5B9BD5'
+    ExcelConditionalIconSet -Range 'B2:B9' -IconSet ThreeTrafficLights1 -Reverse $true
+
+    ExcelChart -Range 'A1:C9' `
+        -Row 12 `
+        -Column 1 `
+        -Type BarClustered `
+        -Title 'Health Score and Incidents'
 
     ExcelUrlLinksByHeader `
         -Header 'Evidence' `
@@ -205,7 +218,7 @@ finally {
 For the generated dashboard, the shape check reports:
 
 - 6 sheets
-- 5 tables
+- 6 tables
 - 3 charts
 
 The generated workbook also includes navigation links, evidence links, and a hidden notes sheet for audit context.
