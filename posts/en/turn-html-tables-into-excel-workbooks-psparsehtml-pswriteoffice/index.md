@@ -1,6 +1,6 @@
 ---
 title: "Turn HTML tables into Excel workbooks with PSParseHTML and PSWriteOffice"
-description: "Parse real HTML tables with PSParseHTML and HtmlTinkerX, then export them into native Excel workbooks with PSWriteOffice without making OfficeIMO carry browser, CSS, JavaScript, or web-scraping responsibilities."
+description: "Learn how HtmlTinkerX, PSParseHTML, OfficeIMO.Excel, and PSWriteOffice fit together so C# and PowerShell users can parse HTML tables and create native Excel workbooks."
 date: "2026-05-15"
 language: "en"
 authors:
@@ -13,52 +13,132 @@ tags:
   - psparsehtml
   - pswriteoffice
   - htmltinkerx
+  - officeimo
   - excel
 image: "./cover.png"
 image_alt: "HTML table data flowing into a native Excel workbook using ConvertFrom-HtmlTable and Export-OfficeExcel"
 draft: true
 ---
 
-HTML tables show up everywhere: vendor portals, exported reports, internal status pages, documentation systems, monitoring dashboards, and old intranet pages that nobody wants to admit are still business critical.
+HTML tables show up in many places: vendor portals, monitoring pages, exported reports, documentation sites, product status pages, old intranet systems, and simple dashboards that were never meant to become APIs.
 
-The useful automation path is not to make Excel understand a whole web page. It is to extract table structure cleanly, turn it into normal data, and then write a real `.xlsx` workbook.
+If you are a PowerShell user, the old instinct is often:
 
-That is where the split between PSParseHTML, HtmlTinkerX, PSWriteOffice, and OfficeIMO makes sense:
+> Get the table from HTML and push it into Excel.
 
-- `HtmlTinkerX` owns the reusable .NET HTML table parsing mechanics.
-- `PSParseHTML` exposes those mechanics as PowerShell commands.
-- `OfficeIMO.Excel` owns the workbook engine.
-- `PSWriteOffice` exposes the Excel reporting workflow for PowerShell.
+That is still the goal, but the architecture has changed. The newer modules in this family are no longer just piles of PowerShell functions doing all the work directly. The heavy lifting has moved into reusable .NET engines, with PowerShell modules acting as friendly command surfaces on top.
 
-In other words: parse HTML where HTML belongs, write Excel where Excel belongs.
+That matters because it gives two groups a clean path:
+
+- C# developers can use the .NET libraries directly.
+- PowerShell users can keep using pipeline-friendly commands.
+
+The same core mechanics power both.
 
 ![Excel preview showing an HTML table converted into a native worksheet table with headers, filters, values, and extracted link URLs](./images/html-tables-excel-preview.png)
 
-## Why Not Put HTML Table Import Into OfficeIMO?
+## The Pieces
 
-OfficeIMO should be good at producing and reading Office documents. It should consume common .NET data shapes like `DataTable`, `DataSet`, objects, and readers. It should not become a browser, web scraper, CSS renderer, JavaScript host, or grab bag of data-source helpers.
+There are four names involved, so it is worth separating them before looking at code.
 
-For HTML table ingestion, a cleaner shape is:
+`HtmlTinkerX` is the .NET HTML engine. It parses HTML tables, understands headers, row and column spans, captions, table metadata, link text, optional link URLs, and can return reusable table models.
+
+`PSParseHTML` is the PowerShell module on top of HtmlTinkerX. It exposes commands such as `ConvertFrom-HtmlTable`, so PowerShell users do not need to write C# just to parse a table.
+
+`OfficeIMO.Excel` is the .NET Excel engine. It creates and reads `.xlsx` files without Excel COM automation. It knows about worksheets, tables, data tables, datasets, charts, formatting, and workbook structure.
+
+`PSWriteOffice` is the PowerShell module on top of OfficeIMO. It exposes commands such as `Export-OfficeExcel`, `Get-OfficeExcel`, `Add-OfficeExcelChart`, and `Close-OfficeExcel`.
+
+The flow looks like this:
 
 ```text
-HTML string/file/stream
-  -> HtmlTinkerX / PSParseHTML
-  -> DataTable or DataSet
-  -> PSWriteOffice / OfficeIMO.Excel
-  -> .xlsx
+HTML page or file
+  -> HtmlTinkerX or PSParseHTML
+  -> DataTable / DataSet / row objects
+  -> OfficeIMO.Excel or PSWriteOffice
+  -> native .xlsx workbook
 ```
 
-That keeps the core libraries composable. A C# application can use `HtmlTinkerX` and `OfficeIMO.Excel` directly. A PowerShell user can use `ConvertFrom-HtmlTable` and `Export-OfficeExcel`. Neither path forces HTML parsing into the Excel engine.
+This is not "render the page exactly as a browser sees it." It is table extraction. The output remains data, which means Excel can filter it, chart it, format it, and keep it editable.
 
-## Convert One HTML Table
+## Why The Split Matters
 
-Start with a selected table and send it straight into Excel.
+It would be tempting to put HTML import directly into OfficeIMO.Excel. That would make one demo shorter, but it would make the library worse over time.
+
+OfficeIMO should be excellent at Office documents. It should consume normal .NET shapes such as `DataTable`, `DataSet`, object sequences, and data readers. It should not become a web scraper, browser renderer, CSS engine, JavaScript host, or SQL client.
+
+Likewise, HtmlTinkerX should not need to know what Excel is. Its job is to turn HTML into structured information.
+
+That boundary is what makes the stack reusable. If you are building a C# service, you can connect HtmlTinkerX to OfficeIMO.Excel. If you are writing PowerShell, you can pipe PSParseHTML into PSWriteOffice.
+
+## For C# Developers
+
+In C#, use HtmlTinkerX to parse the HTML table and convert it into a `DataTable`. Then let OfficeIMO.Excel create the workbook.
+
+```csharp
+using HtmlTinkerX;
+using OfficeIMO.Excel;
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
+using System.Linq;
+
+string html = File.ReadAllText("service-status.html");
+
+List<HtmlTableResult> htmlTables = HtmlParser.ParseTablesWithAngleSharpDetailed(
+    html,
+    replaceContent: null,
+    replaceHeaders: null,
+    allProperties: false,
+    skipFooter: false,
+    cleanHeaders: true,
+    emptyValuePlaceholder: null,
+    cellTextFormat: HtmlCellTextFormat.Compact,
+    includeLinkUrls: true);
+
+DataTable services = htmlTables[0].ToDataTable("Services", inferTypes: true);
+
+using var workbook = ExcelDocument.Create("ServiceStatus.xlsx");
+ExcelSheet sheet = workbook.AddWorkSheet("Services");
+
+sheet.InsertDataTableAsTable(
+    services,
+    tableName: "Services",
+    style: TableStyle.TableStyleMedium2,
+    includeAutoFilter: true);
+
+sheet.AutoFitColumnsFor(Enumerable.Range(1, services.Columns.Count));
+
+workbook.Save();
+```
+
+If the HTML contains several useful tables, convert them to a `DataSet` and let OfficeIMO.Excel create one worksheet per table.
+
+```csharp
+DataSet dataSet = htmlTables.ToDataSet("ServiceStatus", inferTypes: true);
+
+using var workbook = ExcelDocument.Create("ServiceStatus.xlsx");
+
+workbook.InsertDataSet(
+    dataSet,
+    createTables: true,
+    tableStyle: TableStyle.TableStyleMedium2,
+    includeHeaders: true,
+    includeAutoFilter: true,
+    autoFit: true);
+
+workbook.Save();
+```
+
+That is the C# story: use .NET data shapes between libraries. No PowerShell required.
+
+## For PowerShell Users
+
+In PowerShell, the same idea becomes a pipeline.
 
 ```powershell
 Import-Module PSParseHTML
 Import-Module PSWriteOffice
-
-$excelPath = Join-Path $PSScriptRoot 'ServiceStatus.xlsx'
 
 ConvertFrom-HtmlTable `
     -Path .\service-status.html `
@@ -67,7 +147,7 @@ ConvertFrom-HtmlTable `
     -IncludeLinkUrls `
     -InferTypes |
     Export-OfficeExcel `
-        -Path $excelPath `
+        -Path .\ServiceStatus.xlsx `
         -WorksheetName 'Services' `
         -TableName 'Services' `
         -AutoFit `
@@ -75,11 +155,9 @@ ConvertFrom-HtmlTable `
         -BoldTopRow
 ```
 
-That gives you a real Excel table, not a screenshot of a table. Headers become headers, rows become rows, numeric values can become numeric values, and link URLs can be carried alongside display text when you ask for them.
+That command reads a selected HTML table, returns a `DataTable`, and writes it as a native Excel table. The workbook is not a bitmap. It is a real `.xlsx` file with rows, columns, headers, filters, and values.
 
-## Convert All Tables
-
-When the source HTML contains multiple useful tables, ask for a `DataSet` and export it as a workbook.
+For all tables in the HTML file, use `-AsDataSet`.
 
 ```powershell
 $tables = ConvertFrom-HtmlTable `
@@ -95,14 +173,14 @@ $tables | Export-OfficeExcel `
     -BoldTopRow
 ```
 
-This is the part that makes the design click. `ConvertFrom-HtmlTable` is responsible for HTML details such as `thead`, `tbody`, duplicate headers, empty cells, link metadata, row spans, and column spans. `Export-OfficeExcel` is responsible for turning the resulting data into workbook structure.
+That is the PowerShell story: use commands and pipeline data, but still benefit from the .NET engines underneath.
 
-## Add Workbook Polish
+## Add Excel Behavior After Import
 
-Once the data is in Excel, you can keep using normal PSWriteOffice commands to add workbook behavior around it.
+Once the table is in Excel, PSWriteOffice can continue working with the workbook.
 
 ```powershell
-$workbook = Get-OfficeExcel -Path $excelPath
+$workbook = Get-OfficeExcel -Path .\ServiceStatus.xlsx
 try {
     Add-OfficeExcelTableOfContents `
         -Document $workbook `
@@ -125,42 +203,48 @@ finally {
 }
 ```
 
-Notice the cleanup command. Published PowerShell should not ask people to call `.Dispose()` directly when the module can provide a real `Close-*` cmdlet. The script should read like PowerShell and let the module deal with object lifetime.
+The cleanup command is intentional. Published PowerShell should not ask users to call `.Dispose()` directly when a module can provide a normal `Close-*` command. The script should read like PowerShell, while the module handles object lifetime.
 
-## Use It In A Pipeline
+## When To Use This
 
-Because the parser returns normal data shapes, you can inspect, filter, and enrich before creating the workbook.
+This approach is useful when the HTML table contains the data you actually need:
 
-```powershell
-$services = ConvertFrom-HtmlTable `
-    -Path .\service-status.html `
-    -TableId 'services' `
-    -AsDataTable `
-    -IncludeLinkUrls `
-    -InferTypes
+- service status pages
+- product comparison tables
+- vendor export pages
+- documentation tables
+- release matrices
+- monitoring summaries
+- internal HTML reports
 
-$services |
-    Where-Object Status -ne 'Healthy' |
-    Export-OfficeExcel `
-        -Path .\ServiceExceptions.xlsx `
-        -WorksheetName 'Exceptions' `
-        -TableName 'ServiceExceptions' `
-        -AutoFit `
-        -FreezeTopRow `
-        -BoldTopRow
-```
+It is not meant for:
 
-That is much more useful than "HTML page to Excel as seen on screen." Most reporting workflows need the data to remain data.
+- rendering a whole webpage into Excel
+- preserving CSS layout
+- running JavaScript
+- screen scraping a browser-only application
+- replacing an API when a proper API exists
 
-## Where This Should Grow
+If a page has a real API, use the API. If the useful data is already in an HTML table, this pipeline is practical and repeatable.
 
-The improvements should land in the right layer:
+## Why This Replaces The Old Shape
 
-- Better HTML table parsing belongs in `HtmlTinkerX`.
-- Better PowerShell selection options belong in `PSParseHTML`.
-- Better `DataTable`, `DataSet`, object, and reader ingestion belongs in `OfficeIMO.Excel`.
-- Better workbook authoring, charts, formatting, and validation belongs in `PSWriteOffice`.
+Older PowerShell-only modules were convenient, but they often mixed too many responsibilities in one place. Parsing, transformation, workbook creation, formatting, and file handling could all live inside PowerShell script code.
 
-That split gives everyone a good path. PowerShell users get a simple pipeline. C# users get reusable libraries. OfficeIMO stays focused on Office files instead of becoming an HTML/browser/data-source framework.
+The newer direction is different:
 
-The result is boring in the best way: HTML tables in, native Excel workbooks out.
+- .NET libraries own reusable mechanics.
+- PowerShell modules expose those mechanics in a friendly way.
+- C# users do not need PowerShell.
+- PowerShell users do not need to care that C# is underneath.
+
+That is the reason to keep improving HtmlTinkerX, OfficeIMO.Excel, PSParseHTML, and PSWriteOffice together instead of pushing every feature into one giant module.
+
+For this specific workflow, the clean split is:
+
+- HtmlTinkerX improves table parsing.
+- PSParseHTML improves PowerShell selection and output options.
+- OfficeIMO.Excel improves workbook and tabular-data support.
+- PSWriteOffice improves the reporting experience.
+
+HTML tables in, native Excel workbooks out. Same mechanics, two audiences, no Excel COM, no browser rendering burden, and no need to make the Office engine understand the whole web.
