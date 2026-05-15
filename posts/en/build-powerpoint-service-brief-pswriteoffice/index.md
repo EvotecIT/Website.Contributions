@@ -221,7 +221,7 @@ try {
         Select-Object Index, Title, ShapeCount, TextBoxCount, ChartCount, TableCount, HasNotes
 }
 finally {
-    $presentation.Dispose()
+    Close-OfficePowerPoint -Presentation $presentation
 }
 ```
 
