@@ -15,7 +15,7 @@ tags:
   - powerpoint
   - presentations
 image: "./cover.png"
-image_alt: "Generated hero illustration of a complete PowerPoint service brief deck with process, card grid, chart, table, notes, and design-system slides"
+image_alt: "PowerPoint slide from the generated service brief deck showing product surfaces for Word, Excel, PowerPoint, and blog output"
 draft: true
 ---
 
@@ -25,7 +25,7 @@ The newer OfficeIMO PowerPoint designer APIs move the problem up a level: descri
 
 This showcase uses the same service-health story as the Word report and Excel dashboard. The deck is the briefing layer: it turns service data, delivery steps, coverage areas, metrics, and next actions into slides that can be presented, edited, imported into another deck, or used as a starting template.
 
-![PowerPoint process preview showing the semantic path from objects to publishable slides](./images/process-slide.png)
+![PowerPoint slide preview showing where OfficeIMO, PSWriteOffice, examples, and website content belong](./images/process-slide.png)
 
 ## What The Example Builds
 
@@ -215,19 +215,19 @@ The showcase finishes by reading the generated deck back. That makes the example
 ```powershell
 $presentation = Get-OfficePowerPoint -FilePath $path
 try {
-    Get-OfficePowerPointSlideSummary -Presentation $presentation |
+    $summary = @(Get-OfficePowerPointSlideSummary -Presentation $presentation)
+
+    $summary |
         Select-Object Index, Title, ShapeCount, TextBoxCount, ChartCount, TableCount, HasNotes
 }
 finally {
-    Close-OfficePowerPoint -Presentation $presentation
+    $presentation.Dispose()
 }
 ```
 
 You can turn the same read-back into assertions:
 
 ```powershell
-$summary = @(Get-OfficePowerPointSlideSummary -Presentation $presentation)
-
 if (($summary | Where-Object ChartCount -gt 0).Count -lt 1) {
     throw 'Expected at least one chart slide.'
 }

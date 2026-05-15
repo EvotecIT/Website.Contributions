@@ -15,7 +15,7 @@ tags:
   - word
   - reporting
 image: "./cover.png"
-image_alt: "Generated hero illustration of a complete Word executive report with report pages, charts, navigation, approvals, and notes"
+image_alt: "Microsoft Word showing the generated executive report with report pages, charts, navigation, approvals, and notes"
 draft: true
 ---
 
@@ -181,28 +181,28 @@ The example finishes by reopening the document and reporting what was created. T
 ```powershell
 $document = Get-OfficeWord -Path $path -ReadOnly
 try {
-    [pscustomobject]@{
+    $reportShape = [pscustomobject]@{
         Paragraphs      = $document.Paragraphs.Count
         Tables          = $document.Tables.Count
         Charts          = $document.Charts.Count
         ContentControls = $document.StructuredDocumentTags.Count
-        Footnotes       = @(Get-OfficeWordFootnote -Document $document).Count
-        Endnotes        = @(Get-OfficeWordEndnote -Document $document).Count
     }
+
+    $reportShape
 }
 finally {
     Close-OfficeWord -Document $document
 }
 ```
 
-That read-back step is more than a demo flourish. It lets you fail a build if the report accidentally loses its chart, content controls, or reviewer notes.
+That read-back step is more than a demo flourish. It lets you fail a build if the report accidentally loses its chart, content controls, or core tables.
 
 ```powershell
-if ($document.Charts.Count -lt 1) {
+if ($reportShape.Charts -lt 1) {
     throw 'Expected at least one chart in the executive report.'
 }
 
-if ($document.Tables.Count -lt 3) {
+if ($reportShape.Tables -lt 3) {
     throw 'Expected opening, scorecard, and action-plan tables.'
 }
 ```

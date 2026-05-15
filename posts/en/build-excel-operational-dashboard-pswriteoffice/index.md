@@ -15,7 +15,7 @@ tags:
   - excel
   - dashboard
 image: "./cover.png"
-image_alt: "Generated hero illustration of a complete Excel operational dashboard with workbook tabs, charts, KPI tiles, conditional formatting, and navigation"
+image_alt: "Microsoft Excel showing the generated operational dashboard workbook with tables, charts, KPI tiles, links, and navigation"
 draft: true
 ---
 
@@ -180,29 +180,35 @@ ExcelSheet 'Notes' {
 
 ## Reading And Proving The Workbook Shape
 
-The showcase also adds `Get-OfficeExcelSummary`, which is the practical "what did we actually generate?" command.
+The showcase finishes by reopening the workbook and checking the structure that readers rely on.
 
 ```powershell
-$summary = Get-OfficeExcelSummary -Path $path -IncludeSheets
+$workbook = Get-OfficeExcel -Path $path -ReadOnly
+try {
+    $sheets = @($workbook.Sheets)
+    $summary = [pscustomobject]@{
+        SheetCount = $sheets.Count
+        TableCount = $workbook.GetTables().Count
+        ChartCount = ($sheets | ForEach-Object { $_.Charts.Count } | Measure-Object -Sum).Sum
+    }
 
-$summary | Select-Object `
-    SheetCount,
-    TableCount,
-    ChartCount,
-    HyperlinkCount,
-    HiddenSheetCount
+    $summary
 
-$summary.Sheets |
-    Select-Object Name, State, UsedRange, TableCount, ChartCount
+    $sheets |
+        Select-Object Name, UsedRangeA1, @{ Name = 'ChartCount'; Expression = { $_.Charts.Count } }
+}
+finally {
+    Close-OfficeExcel -Document $workbook
+}
 ```
 
-For the generated dashboard, the summary reports:
+For the generated dashboard, the shape check reports:
 
 - 6 sheets
 - 5 tables
 - 3 charts
-- 18 links
-- 1 hidden sheet
+
+The generated workbook also includes navigation links, evidence links, and a hidden notes sheet for audit context.
 
 That makes the example useful in demos and CI logs. It also gives you a fast way to explain what a workbook contains without opening Excel.
 
@@ -245,7 +251,7 @@ Once the pattern is in place, the same commands can generate:
 - security posture workbooks with risk scoring, evidence links, and action tracking
 - migration trackers with validation lists, conditional formatting, and grouped owners
 - service availability scorecards with trend charts and monthly snapshots
-- workbook QA reports where `Get-OfficeExcelSummary` verifies tables, charts, links, and hidden sheets
+- workbook QA reports where read-back checks verify tables, charts, links, and hidden sheets
 
 ## Honest Compatibility Notes
 
