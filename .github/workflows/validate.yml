@@ -30,10 +30,16 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      - name: Setup PowerForge .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: engine/global.json
+
       - name: Build PowerForge.Web
         shell: bash
+        working-directory: engine
         run: |
-          dotnet build engine/PowerForge.Web.Cli/PowerForge.Web.Cli.csproj -c Release -f net8.0
+          dotnet build PowerForge.Web.Cli/PowerForge.Web.Cli.csproj -c Release -p:RestoreLockedMode=false
 
       - name: Validate contribution bundles
         shell: bash
