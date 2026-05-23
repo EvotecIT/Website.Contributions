@@ -14,7 +14,7 @@ tags:
   - tls
   - monitoring
   - web pki
-image: "./cover-imagegen.png"
+image: "./cover.png"
 image_alt: "Certificate Transparency logs shown as independent append-only ledgers with forward and backward cursor flows"
 draft: true
 ---
