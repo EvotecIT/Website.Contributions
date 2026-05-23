@@ -189,7 +189,7 @@ try {
 
     Add-OfficeExcelChart `
         -Document $workbook `
-        -WorksheetName 'Services' `
+        -Sheet 'Services' `
         -Range 'A1:D5' `
         -Row 8 `
         -Column 1 `

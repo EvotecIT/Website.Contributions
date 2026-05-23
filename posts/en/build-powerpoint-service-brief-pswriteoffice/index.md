@@ -78,31 +78,31 @@ $process = @(
 Those objects become a semantic deck plan:
 
 ```powershell
-$plan = PptDeckPlan {
-    PptPlanSection `
+$plan = New-OfficePowerPointDeckPlan {
+    Add-OfficePowerPointPlanSection `
         -Title 'PSWriteOffice Showcase' `
         -Subtitle 'Beautiful, useful Office artifacts from PowerShell' `
         -Seed 'showcase-cover'
 
-    PptPlanProcess `
+    Add-OfficePowerPointPlanProcess `
         -Title 'From objects to publishable artifacts' `
         -Subtitle 'A repeatable path for examples and blog posts' `
         -Steps $process `
         -Seed 'delivery-process'
 
-    PptPlanCardGrid `
+    Add-OfficePowerPointPlanCardGrid `
         -Title 'Product surfaces' `
         -Subtitle 'Each product should show a real workflow, not only primitives.' `
         -Cards $cards `
         -Seed 'product-cards'
 
-    PptPlanCoverage `
+    Add-OfficePowerPointPlanCoverage `
         -Title 'Where the work belongs' `
         -Subtitle 'Engine, wrapper, examples, and website stay distinct.' `
         -Locations $coverage `
         -Seed 'coverage-map'
 
-    PptPlanCapability `
+    Add-OfficePowerPointPlanCapability `
         -Title 'Quality bar' `
         -Subtitle 'The showcase should be practical enough to copy and attractive enough to publish.' `
         -Sections $capabilities `
@@ -116,20 +116,20 @@ This is the important shift: the script describes intent. The designer layer han
 
 The example uses two complementary writing modes:
 
-- Semantic slides through `PptDeckPlan` and `PptDesignerDeck`.
+- Semantic slides through `New-OfficePowerPointDeckPlan` and `Add-OfficePowerPointDesignerDeck`.
 - Explicit evidence slides through `PptSlide`, `PptChart`, `PptTable`, and `PptNotes`.
 
 That split matters. Narrative slides benefit from designer composition. Evidence slides often need precise chart, table, and notes placement.
 
 ## Rendering Through The Designer Bridge
 
-The deck is rendered with `PptDesignerDeck`, which maps the PSWriteOffice plan into OfficeIMO's designer/deck-plan model.
+The deck is rendered with `Add-OfficePowerPointDesignerDeck`, which maps the PSWriteOffice plan into OfficeIMO's designer/deck-plan model.
 
 ```powershell
 New-OfficePowerPoint -Path $path {
     PptSlideSize -Preset Screen16x9
 
-    PptDesignerDeck `
+    Add-OfficePowerPointDesignerDeck `
         -Plan $plan `
         -AccentColor '#008C95' `
         -Seed 'pswriteoffice-showcase' `
@@ -151,37 +151,57 @@ A deck-plan layer is excellent for narrative slides, but a service brief also ne
 ![PowerPoint evidence preview showing generated chart and table slides](./images/chart-slide.png)
 
 ```powershell
-$chartSlide = PptSlide -Title 'Showcase coverage by product'
+$ppt = Get-OfficePowerPoint -FilePath $path
+try {
+    $chartSlide = PptSlide -Presentation $ppt {
+        PptTitle -Title 'Showcase coverage by product'
+    }
 
-PptChart `
-    -Slide $chartSlide `
-    -Data $coverageRows `
-    -CategoryProperty Product `
-    -SeriesProperty Coverage `
-    -Type ColumnClustered `
-    -Title 'Coverage by product' `
-    -X 60 `
-    -Y 130 `
-    -Width 520 `
-    -Height 310
+    PptChart `
+        -Slide $chartSlide `
+        -Data $coverageRows `
+        -CategoryProperty Product `
+        -SeriesProperty Coverage `
+        -Type ClusteredColumn `
+        -Title 'Coverage by product' `
+        -X 60 `
+        -Y 130 `
+        -Width 520 `
+        -Height 310
 
-PptNotes -Slide $chartSlide -Text 'Use this slide to explain current coverage and known follow-up areas.'
+    PptNotes -Slide $chartSlide -Text 'Use this slide to explain current coverage and known follow-up areas.'
+
+    Save-OfficePowerPoint -Presentation $ppt
+}
+finally {
+    Close-OfficePowerPoint -Presentation $ppt
+}
 ```
 
 The table slide uses the same principle: let objects carry the data, let PSWriteOffice create the Office artifact.
 
 ```powershell
-$tableSlide = PptSlide -Title 'Implementation checklist'
+$ppt = Get-OfficePowerPoint -FilePath $path
+try {
+    $tableSlide = PptSlide -Presentation $ppt {
+        PptTitle -Title 'Implementation checklist'
+    }
 
-PptTable `
-    -Slide $tableSlide `
-    -Data $checklist `
-    -X 55 `
-    -Y 120 `
-    -Width 820 `
-    -Height 300
+    PptTable `
+        -Slide $tableSlide `
+        -Data $checklist `
+        -X 55 `
+        -Y 120 `
+        -Width 820 `
+        -Height 300
 
-PptNotes -Slide $tableSlide -Text 'Keep this slide as the handoff checklist for the next polish pass.'
+    PptNotes -Slide $tableSlide -Text 'Keep this slide as the handoff checklist for the next polish pass.'
+
+    Save-OfficePowerPoint -Presentation $ppt
+}
+finally {
+    Close-OfficePowerPoint -Presentation $ppt
+}
 ```
 
 ## Sections And Transitions
@@ -189,21 +209,29 @@ PptNotes -Slide $tableSlide -Text 'Keep this slide as the handoff checklist for 
 The example also adds deck polish that matters when the file is opened by a person.
 
 ```powershell
-Add-OfficePowerPointSection `
-    -Presentation $ppt `
-    -Name 'Designer story' `
-    -StartSlideIndex 0
+$ppt = Get-OfficePowerPoint -FilePath $path
+try {
+    Add-OfficePowerPointSection `
+        -Presentation $ppt `
+        -Name 'Designer story' `
+        -StartSlideIndex 0
 
-Add-OfficePowerPointSection `
-    -Presentation $ppt `
-    -Name 'Evidence appendix' `
-    -StartSlideIndex 6
+    Add-OfficePowerPointSection `
+        -Presentation $ppt `
+        -Name 'Evidence appendix' `
+        -StartSlideIndex 6
 
-Get-OfficePowerPointSlide -Presentation $ppt -Index 0 |
-    Set-OfficePowerPointSlideTransition -Transition Fade
+    Get-OfficePowerPointSlide -Presentation $ppt -Index 0 |
+        Set-OfficePowerPointSlideTransition -Transition Fade
 
-Get-OfficePowerPointSlide -Presentation $ppt -Index 6 |
-    Set-OfficePowerPointSlideTransition -Transition PushLeft
+    Get-OfficePowerPointSlide -Presentation $ppt -Index 6 |
+        Set-OfficePowerPointSlideTransition -Transition PushLeft
+
+    Save-OfficePowerPoint -Presentation $ppt
+}
+finally {
+    Close-OfficePowerPoint -Presentation $ppt
+}
 ```
 
 The output is not a static export. It is a deck you can continue editing, presenting, importing into another deck, or using as a template for future automation.

@@ -119,7 +119,7 @@ The scorecard is more than an object dump. Rows are formatted based on status, s
 WordParagraph -Text 'Service Scorecard' -Style Heading1
 
 WordTable -InputObject $services -Style GridTable4Accent1 -Layout AutoFitToWindow {
-    WordTableCondition -FilterScript { $_.Status -eq 'Needs action' } -BackgroundColor '#fde2e2'
+    WordTableCondition -FilterScript { $_.Status -eq 'Risk' } -BackgroundColor '#fde2e2'
     WordTableCondition -FilterScript { $_.Status -eq 'Watch' } -BackgroundColor '#fff4cc'
     WordTableCondition -FilterScript { $_.Status -eq 'Healthy' } -BackgroundColor '#e2f7e1'
 }
