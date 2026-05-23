@@ -33,7 +33,7 @@ jobs:
       - name: Build PowerForge.Web
         shell: bash
         run: |
-          dotnet build engine/PowerForge.Web.Cli/PowerForge.Web.Cli.csproj -c Release -f net8.0
+          dotnet build engine/PowerForge.Web.Cli/PowerForge.Web.Cli.csproj -c Release -f net8.0 -p:RestoreLockedMode=false
 
       - name: Validate contribution bundles
         shell: bash
