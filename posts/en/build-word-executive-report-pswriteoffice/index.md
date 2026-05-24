@@ -202,8 +202,8 @@ if ($reportShape.Charts -lt 1) {
     throw 'Expected at least one chart in the executive report.'
 }
 
-if ($reportShape.Tables -lt 3) {
-    throw 'Expected opening, scorecard, and action-plan tables.'
+if ($reportShape.Tables -lt 2) {
+    throw 'Expected opening and scorecard tables.'
 }
 ```
 
