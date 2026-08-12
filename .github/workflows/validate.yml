@@ -23,6 +23,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: EvotecIT/PSPublishModule
+          ref: v3.0.102
           path: engine
 
       - name: Setup .NET
