@@ -45,8 +45,7 @@ $connectionString = New-DbaXConnectionString `
     -Provider SqlServer `
     -Server 'sql01' `
     -Database 'Operations' `
-    -Ssl `
-    -TrustServerCertificate
+    -Ssl
 ```
 
 For SQL Server with a credential, DbaClientX query cmdlets can accept `-Credential`:
@@ -92,10 +91,10 @@ If you want a workbook that people can open, filter, review, and send back, quer
 Import-Module DbaClientX
 Import-Module PSWriteOffice
 
-$connectionString = New-DbaXConnectionString -Provider SqlServer -Server 'sql01' -Database 'Operations' -Ssl -TrustServerCertificate
+$connectionString = New-DbaXConnectionString -Provider SqlServer -Server 'sql01' -Database 'Operations' -Ssl
 
 $rows = Invoke-DbaXQuery `
-    -Server '.' `
+    -Server 'sql01' `
     -Database 'Operations' `
     -Query 'SELECT Id, Name, Status, ModifiedUtc FROM dbo.WorkQueue' `
     -ReturnType DataTable
@@ -115,7 +114,7 @@ For smaller jobs, object pipelines are fine:
 
 ```powershell
 Invoke-DbaXQuery `
-    -Server '.' `
+    -Server 'sql01' `
     -Database 'Operations' `
     -Query 'SELECT Id, Name, Status FROM dbo.WorkQueue' |
     Export-OfficeExcel `
@@ -137,7 +136,7 @@ When the workbook comes back from review, import it as a `DataTable` and write i
 Import-Module DbaClientX
 Import-Module PSWriteOffice
 
-$connectionString = New-DbaXConnectionString -Provider SqlServer -Server 'sql01' -Database 'Operations' -Ssl -TrustServerCertificate
+$connectionString = New-DbaXConnectionString -Provider SqlServer -Server 'sql01' -Database 'Operations' -Ssl
 
 $table = Import-OfficeExcel `
     -Path .\WorkQueue-Reviewed.xlsx `
@@ -158,7 +157,7 @@ From there, validate and merge in SQL:
 
 ```powershell
 Invoke-DbaXNonQuery `
-    -Server '.' `
+    -Server 'sql01' `
     -Database 'Operations' `
     -Query @'
 MERGE dbo.WorkQueue AS target
@@ -235,7 +234,7 @@ There are two practical ways to move data.
 Use the flexible path when the dataset is small or you need PowerShell transformations:
 
 ```powershell
-Invoke-DbaXQuery -Server '.' -Database 'Operations' -Query 'SELECT Id, Status FROM dbo.WorkQueue' |
+Invoke-DbaXQuery -Server 'sql01' -Database 'Operations' -Query 'SELECT Id, Status FROM dbo.WorkQueue' |
     Where-Object Status -ne 'Closed' |
     Select-Object Id, Status, @{ Name = 'ExportedUtc'; Expression = { [DateTime]::UtcNow } } |
     Export-OfficeExcel -Path .\OpenWork.xlsx -WorksheetName Open -TableName OpenWork
@@ -245,7 +244,7 @@ Use the faster tabular path when the dataset is large or the script runs often:
 
 ```powershell
 $rows = Invoke-DbaXQuery `
-    -Server '.' `
+    -Server 'sql01' `
     -Database 'Operations' `
     -Query 'SELECT Id, Status, ModifiedUtc FROM dbo.WorkQueue' `
     -ReturnType DataTable
