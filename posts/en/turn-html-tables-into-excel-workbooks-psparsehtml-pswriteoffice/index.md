@@ -99,12 +99,12 @@ List<HtmlTableResult> htmlTables = HtmlParser.ParseTablesWithAngleSharpDetailed(
 DataTable services = htmlTables[0].ToDataTable("Services", inferTypes: true);
 
 using var workbook = ExcelDocument.Create("ServiceStatus.xlsx");
-ExcelSheet sheet = workbook.AddWorkSheet("Services");
+ExcelSheet sheet = workbook.AddWorksheet("Services");
 
 sheet.InsertDataTableAsTable(
     services,
     tableName: "Services",
-    style: TableStyle.TableStyleMedium2,
+    style: ExcelTableStyle.TableStyleMedium2,
     includeAutoFilter: true);
 
 sheet.AutoFitColumnsFor(Enumerable.Range(1, services.Columns.Count));
@@ -122,7 +122,7 @@ using var workbook = ExcelDocument.Create("ServiceStatus.xlsx");
 workbook.InsertDataSet(
     dataSet,
     createTables: true,
-    tableStyle: TableStyle.TableStyleMedium2,
+    tableStyle: ExcelTableStyle.TableStyleMedium2,
     includeHeaders: true,
     includeAutoFilter: true,
     autoFit: true);
