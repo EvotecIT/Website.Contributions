@@ -27,7 +27,7 @@ PowerShell is often the glue between systems that were never designed to talk to
 
 [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) creates and reads Office files from PowerShell. For this workflow, the important part is Excel: export rows into real `.xlsx` workbooks, import reviewed sheets back as PowerShell objects or `DataTable`, and do it without requiring Microsoft Excel on the machine.
 
-[OfficeIMO](https://github.com/EvotecIT/OfficeIMO) is the engine underneath PSWriteOffice. The current release work keeps improving the fast Excel paths, so the PowerShell commands can stay simple while large workbook operations get faster.
+[OfficeIMO](https://github.com/EvotecIT/OfficeIMO) is the engine underneath PSWriteOffice. It owns the workbook implementation so the PowerShell commands can stay concise while the same workflow scales from a quick export to explicit workbook composition.
 
 The result is a practical data movement story:
 
@@ -38,10 +38,15 @@ The result is a practical data movement story:
 
 ## Connect to the database
 
-For SQL Server with integrated security, the connection string can be simple:
+For SQL Server with integrated security, let DbaClientX build the connection string:
 
 ```powershell
-$connectionString = 'Server=.;Database=Operations;Encrypt=True;TrustServerCertificate=True;Integrated Security=True'
+$connectionString = New-DbaXConnectionString `
+    -Provider SqlServer `
+    -Server 'sql01' `
+    -Database 'Operations' `
+    -Ssl `
+    -TrustServerCertificate
 ```
 
 For SQL Server with a credential, DbaClientX query cmdlets can accept `-Credential`:
@@ -56,19 +61,28 @@ Invoke-DbaXQuery `
     -Query 'SELECT TOP 10 Id, Name, Status FROM dbo.WorkQueue'
 ```
 
-For bulk writes, use the provider connection string. In real automation, keep it in your normal secret store instead of hardcoding it in scripts:
+For providers that require a database login, retrieve a `PSCredential` from your normal secret store and give it to the same builder:
 
 ```powershell
-$connectionString = 'Server=sql01;Database=Operations;Encrypt=True;TrustServerCertificate=True;User ID=app_loader;Password=secret'
+$databaseCredential = Get-Secret -Name 'Operations-Database-Credential'
+
+$postgresConnectionString = New-DbaXConnectionString `
+    -Provider PostgreSql `
+    -Server 'pg01' `
+    -Database 'Operations' `
+    -Credential $databaseCredential `
+    -Ssl
 ```
 
-Other providers use their normal connection-string format:
+SQLite needs no credential:
 
 ```powershell
-$postgres = 'Host=localhost;Database=app;Username=app_loader;Password=secret'
-$mysql = 'Server=localhost;Database=app;Uid=app_loader;Pwd=secret'
-$sqlite = 'Data Source=C:\Data\operations.db'
+$sqliteConnectionString = New-DbaXConnectionString `
+    -Provider SQLite `
+    -Database '.\operations.db'
 ```
+
+`Get-Secret` comes from Microsoft.PowerShell.SecretManagement. In CI, the credential or connection string can come from the runner's secret provider instead. The important boundary is that passwords do not live in the article, script, repository, or command history.
 
 ## Export database rows to Excel
 
@@ -78,7 +92,7 @@ If you want a workbook that people can open, filter, review, and send back, quer
 Import-Module DbaClientX
 Import-Module PSWriteOffice
 
-$connectionString = 'Server=.;Database=Operations;Encrypt=True;TrustServerCertificate=True;Integrated Security=True'
+$connectionString = New-DbaXConnectionString -Provider SqlServer -Server 'sql01' -Database 'Operations' -Ssl -TrustServerCertificate
 
 $rows = Invoke-DbaXQuery `
     -Server '.' `
@@ -123,7 +137,7 @@ When the workbook comes back from review, import it as a `DataTable` and write i
 Import-Module DbaClientX
 Import-Module PSWriteOffice
 
-$connectionString = 'Server=.;Database=Operations;Encrypt=True;TrustServerCertificate=True;Integrated Security=True'
+$connectionString = New-DbaXConnectionString -Provider SqlServer -Server 'sql01' -Database 'Operations' -Ssl -TrustServerCertificate
 
 $table = Import-OfficeExcel `
     -Path .\WorkQueue-Reviewed.xlsx `
@@ -192,7 +206,7 @@ $customers = Import-OfficeExcel `
 
 $customers | Write-DbaXTableData `
     -Provider PostgreSql `
-    -ConnectionString 'Host=localhost;Database=app;Username=app_loader;Password=secret' `
+    -ConnectionString $postgresConnectionString `
     -DestinationTable 'public.customer_stage' `
     -BatchSize 5000
 ```
