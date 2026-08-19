@@ -181,26 +181,22 @@ Once the table is in Excel, PSWriteOffice can continue working with the workbook
 
 ```powershell
 $workbook = Get-OfficeExcel -Path .\ServiceStatus.xlsx
-try {
-    Add-OfficeExcelTableOfContents `
-        -Document $workbook `
-        -SheetName 'Index' `
-        -AddBackLinks
+Add-OfficeExcelTableOfContents `
+    -Document $workbook `
+    -SheetName 'Index' `
+    -AddBackLinks
 
-    Add-OfficeExcelChart `
-        -Document $workbook `
-        -Sheet 'Services' `
-        -Range 'A1:D5' `
-        -Row 8 `
-        -Column 1 `
-        -Type BarClustered `
-        -Title 'Health and incidents'
+Add-OfficeExcelChart `
+    -Document $workbook `
+    -Sheet 'Services' `
+    -Range 'A1:D5' `
+    -Row 8 `
+    -Column 1 `
+    -Type BarClustered `
+    -Title 'Health and incidents'
 
-    Save-OfficeExcel -Document $workbook
-}
-finally {
-    Close-OfficeExcel -Document $workbook
-}
+$workbook | Save-OfficeExcel
+$workbook | Close-OfficeExcel
 ```
 
 The cleanup command is intentional. Published PowerShell should not ask users to call `.Dispose()` directly when a module can provide a normal `Close-*` command. The script should read like PowerShell, while the module handles object lifetime.

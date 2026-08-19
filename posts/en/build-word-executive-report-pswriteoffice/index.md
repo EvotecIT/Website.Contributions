@@ -104,7 +104,7 @@ New-OfficeWord -Path $path {
         }
 
         WordBookmark -Name 'ExecutiveSummary'
-        WordTableOfContent -Style Template1
+        WordTableOfContents -Style Template1
     }
 }
 ```
@@ -180,19 +180,15 @@ The example finishes by reopening the document and reporting what was created. T
 
 ```powershell
 $document = Get-OfficeWord -Path $path -ReadOnly
-try {
-    $reportShape = [pscustomobject]@{
-        Paragraphs      = $document.Paragraphs.Count
-        Tables          = $document.Tables.Count
-        Charts          = $document.Charts.Count
-        ContentControls = $document.StructuredDocumentTags.Count
-    }
+$reportShape = [pscustomobject]@{
+    Paragraphs      = $document.Paragraphs.Count
+    Tables          = $document.Tables.Count
+    Charts          = $document.Charts.Count
+    ContentControls = $document.StructuredDocumentTags.Count
+}
+$document | Close-OfficeWord
 
-    $reportShape
-}
-finally {
-    Close-OfficeWord -Document $document
-}
+$reportShape
 ```
 
 That read-back step is more than a demo flourish. It lets you fail a build if the report accidentally loses its chart, content controls, or core tables.
@@ -233,4 +229,4 @@ The same pattern works for more than service health:
 
 This example exercises the things that make Word automation valuable in real projects: navigation, editable structure, review controls, metadata, evidence notes, and formatting that helps readers decide what matters.
 
-`OfficeIMO.Word` provides the Open XML engine. `PSWriteOffice` makes the authoring layer feel like PowerShell: pass objects in, compose a report, save a real Office document, and verify the output.
+`OfficeIMO.Word` provides the Open XML engine. `PSWriteOffice` makes the authoring layer feel like PowerShell: pass objects in, compose a report, save a real Office document, and verify the output. For scripts driven by loops and conditions instead of one composition block, the same commands also accept an explicit live document or paragraph target.

@@ -121,15 +121,15 @@ The example uses two complementary writing modes:
 
 That split matters. Narrative slides benefit from designer composition. Evidence slides often need precise chart, table, and notes placement.
 
-## Rendering Through The Designer Bridge
+## Build The Deck Once
 
-The deck is rendered with `Add-OfficePowerPointDesignerDeck`, which maps the PSWriteOffice plan into OfficeIMO's designer/deck-plan model.
+The showcase renders the semantic plan, adds evidence slides, creates sections, and applies transitions in one composition block. It does not save, reopen, and save the same deck for every step.
 
 ```powershell
-New-OfficePowerPoint -Path $path {
+PptNew -Path $path {
     PptSlideSize -Preset Screen16x9
 
-    Add-OfficePowerPointDesignerDeck `
+    PptDesignerDeck `
         -Plan $plan `
         -AccentColor '#008C95' `
         -Seed 'pswriteoffice-showcase' `
@@ -139,23 +139,9 @@ New-OfficePowerPoint -Path $path {
         -FooterRight 'OfficeIMO designer' `
         -CreativeDirectionPack TechnicalMap `
         -LayoutStrategy ContentFirst
-}
-```
 
-The generated deck remains editable in PowerPoint. These are normal slides, shapes, notes, charts, and tables.
-
-## Adding Explicit Evidence Slides
-
-A deck-plan layer is excellent for narrative slides, but a service brief also needs evidence. The showcase adds explicit chart and table slides after the designer-rendered deck.
-
-![PowerPoint evidence preview showing generated chart and table slides](./images/chart-slide.png)
-
-```powershell
-$ppt = Get-OfficePowerPoint -FilePath $path
-try {
-    $chartSlide = PptSlide -Presentation $ppt {
-        PptTitle -Title 'Showcase coverage by product'
-    }
+    $chartSlide = PptSlide
+    PptTitle -Slide $chartSlide -Title 'Showcase coverage by product'
 
     PptChart `
         -Slide $chartSlide `
@@ -171,21 +157,8 @@ try {
 
     PptNotes -Slide $chartSlide -Text 'Use this slide to explain current coverage and known follow-up areas.'
 
-    Save-OfficePowerPoint -Presentation $ppt
-}
-finally {
-    Close-OfficePowerPoint -Presentation $ppt
-}
-```
-
-The table slide uses the same principle: let objects carry the data, let PSWriteOffice create the Office artifact.
-
-```powershell
-$ppt = Get-OfficePowerPoint -FilePath $path
-try {
-    $tableSlide = PptSlide -Presentation $ppt {
-        PptTitle -Title 'Implementation checklist'
-    }
+    $tableSlide = PptSlide
+    PptTitle -Slide $tableSlide -Title 'Implementation checklist'
 
     PptTable `
         -Slide $tableSlide `
@@ -197,44 +170,31 @@ try {
 
     PptNotes -Slide $tableSlide -Text 'Keep this slide as the handoff checklist for the next polish pass.'
 
-    Save-OfficePowerPoint -Presentation $ppt
-}
-finally {
-    Close-OfficePowerPoint -Presentation $ppt
+    PptSection -Name 'Designer story' -StartSlideIndex 0
+    PptSection -Name 'Evidence appendix' -StartSlideIndex 6
+    PptTransition -Slide $chartSlide -Transition PushLeft
+    Get-OfficePowerPointSlide -Index 0 | PptTransition -Transition Fade
 }
 ```
 
-## Sections And Transitions
+![PowerPoint evidence preview showing generated chart and table slides](./images/chart-slide.png)
 
-The example also adds deck polish that matters when the file is opened by a person.
+The block uses the concise aliases consistently. The equivalent canonical names remain available in command help. The output is not a static export: it is a deck you can continue editing, presenting, importing into another deck, or using as a template.
+
+## Use A Presentation Object For Loop-Driven Decks
+
+When normal PowerShell control flow decides which slides to add, keep the presentation object instead of wrapping everything in a DSL block:
 
 ```powershell
-$ppt = Get-OfficePowerPoint -FilePath $path
-try {
-    Add-OfficePowerPointSection `
-        -Presentation $ppt `
-        -Name 'Designer story' `
-        -StartSlideIndex 0
-
-    Add-OfficePowerPointSection `
-        -Presentation $ppt `
-        -Name 'Evidence appendix' `
-        -StartSlideIndex 6
-
-    Get-OfficePowerPointSlide -Presentation $ppt -Index 0 |
-        Set-OfficePowerPointSlideTransition -Transition Fade
-
-    Get-OfficePowerPointSlide -Presentation $ppt -Index 6 |
-        Set-OfficePowerPointSlideTransition -Transition PushLeft
-
-    Save-OfficePowerPoint -Presentation $ppt
-}
-finally {
-    Close-OfficePowerPoint -Presentation $ppt
-}
+$presentation = New-OfficePowerPoint -Path '.\Customer-Briefing.pptx' -NoSave
+$slide = Add-OfficePowerPointSlide -Presentation $presentation -LayoutType Text
+Set-OfficePowerPointSlideTitle -Slide $slide -Title 'Actions'
+Add-OfficePowerPointTextBox -Slide $slide -Text 'Confirm the production date.' -X 90 -Y 170 -Width 700 -Height 60
+$presentation | Save-OfficePowerPoint
+$presentation | Close-OfficePowerPoint
 ```
 
-The output is not a static export. It is a deck you can continue editing, presenting, importing into another deck, or using as a template for future automation.
+This is the same engine and the same document model. Choose the shape that makes the surrounding script easiest to read.
 
 ## Reading And Validating The Deck
 
@@ -242,15 +202,11 @@ The showcase finishes by reading the generated deck back. That makes the example
 
 ```powershell
 $presentation = Get-OfficePowerPoint -FilePath $path
-try {
-    $summary = @(Get-OfficePowerPointSlideSummary -Presentation $presentation)
+$summary = @(Get-OfficePowerPointSlideSummary -Presentation $presentation)
+$presentation | Close-OfficePowerPoint
 
-    $summary |
-        Select-Object Index, Title, ShapeCount, TextBoxCount, ChartCount, TableCount, HasNotes
-}
-finally {
-    Close-OfficePowerPoint -Presentation $presentation
-}
+$summary |
+    Select-Object SlideIndex, Title, ShapeCount, TextBoxCount, ChartCount, TableCount, HasNotes
 ```
 
 You can turn the same read-back into assertions:
@@ -292,7 +248,7 @@ The same pattern can produce:
 
 ## What This Enables
 
-This is a first bridge, not the end of the PowerPoint story. It already demonstrates:
+The combined surface supports both semantic design and precise evidence slides:
 
 - fewer coordinates in PowerShell scripts
 - repeatable slide composition
@@ -301,4 +257,4 @@ This is a first bridge, not the end of the PowerPoint story. It already demonstr
 - mixed semantic and explicit evidence slides
 - speaker notes and maintenance metadata
 
-The next useful polish is richer diagnostics, metrics and visual-frame helpers, and shape-layout commands for manual refinement. But even this first pass changes the ergonomics: PowerShell can now express the story of a deck, not just place shapes on a canvas.
+PowerShell can express the story of a deck, not just place shapes on a canvas. For maintenance workflows, the same module can inspect existing slides, copy approved slides between decks, update text and notes, organize sections, and export an HTML review surface.

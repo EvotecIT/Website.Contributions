@@ -67,6 +67,19 @@ $services = @(
 
 The important part is that the script writes the workbook as Excel structure, not as a flat file with decoration. Tables remain tables, formulas remain formulas, hyperlinks remain hyperlinks, and the workbook can keep living after generation.
 
+If a native table is all you need, start with the short pipeline:
+
+```powershell
+$services | Export-OfficeExcel `
+    -Path '.\ServiceHealth.xlsx' `
+    -WorksheetName 'Services' `
+    -TableName 'ServiceHealth' `
+    -AutoFit `
+    -FreezeTopRow
+```
+
+The larger DSL below is useful because this workbook needs several sheets, formulas, charts, validation, and navigation. It is an escalation from the simple export, not a requirement for every job.
+
 ## Building The Summary Sheet
 
 The summary sheet combines formulas, a styled table, chart formatting, freeze panes, and print defaults.
@@ -165,7 +178,7 @@ ExcelSheet 'Trend' {
 }
 ```
 
-The owner summary is intentionally table-based while PivotTable desktop-open compatibility is being repaired. That is an important showcase rule: a flagship example should open cleanly before it tries to show every possible feature.
+The owner summary is intentionally table-based because reviewers need a visible action queue. When the analysis itself needs regrouping, use a real PivotTable; the companion `Recipe-Excel-PivotAndSparklines.ps1` demonstrates pivots and row-level trends in a smaller script.
 
 ## Navigation And Hidden Notes
 
@@ -197,22 +210,18 @@ The showcase finishes by reopening the workbook and checking the structure that 
 
 ```powershell
 $workbook = Get-OfficeExcel -Path $path -ReadOnly
-try {
-    $sheets = @($workbook.Sheets)
-    $summary = [pscustomobject]@{
-        SheetCount = $sheets.Count
-        TableCount = $workbook.GetTables().Count
-        ChartCount = ($sheets | ForEach-Object { $_.Charts.Count } | Measure-Object -Sum).Sum
-    }
-
-    $summary
-
-    $sheets |
-        Select-Object Name, UsedRangeA1, @{ Name = 'ChartCount'; Expression = { $_.Charts.Count } }
+$sheets = @($workbook.Sheets)
+$summary = [pscustomobject]@{
+    SheetCount = $sheets.Count
+    TableCount = $workbook.GetTables().Count
+    ChartCount = ($sheets | ForEach-Object { $_.Charts.Count } | Measure-Object -Sum).Sum
 }
-finally {
-    Close-OfficeExcel -Document $workbook
-}
+$sheetSummary = $sheets |
+    Select-Object Name, UsedRangeA1, @{ Name = 'ChartCount'; Expression = { $_.Charts.Count } }
+$workbook | Close-OfficeExcel
+
+$summary
+$sheetSummary
 ```
 
 For the generated dashboard, the shape check reports:
