@@ -15,6 +15,7 @@ tags:
   - officeimo
   - excel
   - sql-server
+  - mailozaurr
   - powershell
 image: "./cover.png"
 image_alt: "Database rows moving through PowerShell into an Excel workbook and back"
@@ -258,6 +259,53 @@ Export-OfficeExcel `
 ```
 
 The commands still look like normal PowerShell, but the data stays in a form that database and workbook libraries can process efficiently.
+
+## Publish The Review Pack
+
+A database export often needs two forms: an editable workbook for analysts and a fixed-layout copy for approval or archival. PSWriteOffice can create the workbook and explicitly export it to PDF; Mailozaurr can then deliver both without making the data-access script own SMTP:
+
+```powershell
+Import-Module DbaClientX
+Import-Module PSWriteOffice
+Import-Module Mailozaurr
+
+$outputDirectory = (New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'Output') -Force).FullName
+$workbookPath = Join-Path $outputDirectory 'WorkQueue.xlsx'
+$pdfPath = Join-Path $outputDirectory 'WorkQueue.pdf'
+
+$rows = Invoke-DbaXQuery `
+    -Server 'sql01' `
+    -Database 'Operations' `
+    -Query 'SELECT Id, Name, Status, ModifiedUtc FROM dbo.WorkQueue' `
+    -ReturnType DataTable
+
+Export-OfficeExcel `
+    -InputObject $rows `
+    -Path $workbookPath `
+    -WorksheetName 'Work Queue' `
+    -TableName WorkQueue `
+    -AutoFit `
+    -FreezeTopRow
+
+Export-OfficeDocumentPdf `
+    -InputPath $workbookPath `
+    -Path $pdfPath
+
+$mailCredential = Get-Secret -Name 'Reporting-Smtp-Credential'
+Send-EmailMessage `
+    -From 'reports@example.com' `
+    -To 'reviewers@example.com' `
+    -Subject 'Work queue review pack' `
+    -Text 'The editable workbook and PDF review copy are attached.' `
+    -Attachment $workbookPath, $pdfPath `
+    -Server 'smtp.example.com' `
+    -Credential $mailCredential `
+    -UseSsl
+```
+
+`InputPath` is intentional on `Export-OfficeDocumentPdf` because `Path` names the PDF being produced. Elsewhere, PSWriteOffice uses `Path` for the primary file, `OutputPath` for a transformed copy, and `DestinationPath` for a copy destination.
+
+The ownership stays simple: DbaClientX queries and writes database data, PSWriteOffice creates document artifacts, and Mailozaurr handles credentials, message transport, and attachments. `Get-Secret` comes from Microsoft.PowerShell.SecretManagement; use the same secret provider your scheduled job or CI runner already trusts.
 
 ## Common scenarios
 
