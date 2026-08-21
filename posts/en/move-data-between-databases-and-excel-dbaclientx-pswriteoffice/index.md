@@ -92,7 +92,16 @@ If you want a workbook that people can open, filter, review, and send back, quer
 Import-Module DbaClientX
 Import-Module PSWriteOffice
 
-$connectionString = New-DbaXConnectionString -Provider SqlServer -Server 'sql01' -Database 'Operations' -Ssl
+$databaseServer = 'sql01'
+$databaseName = 'Operations'
+$trustServerCertificate = $false
+
+$connectionString = New-DbaXConnectionString `
+    -Provider SqlServer `
+    -Server $databaseServer `
+    -Database $databaseName `
+    -Ssl `
+    -TrustServerCertificate:$trustServerCertificate
 
 $rows = Invoke-DbaXQueryStream `
     -Provider SqlServer `
@@ -137,7 +146,16 @@ When the workbook comes back from review, import it as a `DataTable` and write i
 Import-Module DbaClientX
 Import-Module PSWriteOffice
 
-$connectionString = New-DbaXConnectionString -Provider SqlServer -Server 'sql01' -Database 'Operations' -Ssl
+$databaseServer = 'sql01'
+$databaseName = 'Operations'
+$trustServerCertificate = $false
+
+$connectionString = New-DbaXConnectionString `
+    -Provider SqlServer `
+    -Server $databaseServer `
+    -Database $databaseName `
+    -Ssl `
+    -TrustServerCertificate:$trustServerCertificate
 
 $table = Import-OfficeExcel `
     -Path .\WorkQueue-Reviewed.xlsx `
@@ -161,8 +179,9 @@ try {
         -PassThru
 
     $mergeResult = Invoke-DbaXNonQuery `
-        -Server 'sql01' `
-        -Database 'Operations' `
+        -Server $databaseServer `
+        -Database $databaseName `
+        -TrustServerCertificate:$trustServerCertificate `
         -Query @"
 MERGE dbo.WorkQueue WITH (HOLDLOCK) AS target
 USING $stageTable AS source
@@ -181,13 +200,16 @@ WHEN NOT MATCHED BY TARGET THEN INSERT (Id, Name, Status, ModifiedUtc)
     }
 } finally {
     $cleanupResult = Invoke-DbaXNonQuery `
-        -Server 'sql01' `
-        -Database 'Operations' `
+        -Server $databaseServer `
+        -Database $databaseName `
+        -TrustServerCertificate:$trustServerCertificate `
         -Query "DROP TABLE IF EXISTS $stageTable;"
 }
 ```
 
-The important detail is `-AsDataTable`. That gives DbaClientX a tabular shape it can send to provider-native bulk insert APIs. A unique staging table isolates retries and concurrent imports; the `finally` block removes it even when validation or merge fails. Validate types, required columns, row counts, duplicate keys, and business rules before changing production data.
+The important detail is `-AsDataTable`. That gives DbaClientX a tabular shape it can send to provider-native bulk insert APIs. The bulk writer uses the generated connection string; the merge and cleanup commands use the same server, database, and certificate-trust decision, and DbaClientX enables SQL Server encryption for those direct non-query connections. If the workflow uses a database credential, pass the same `$databaseCredential` to both `New-DbaXConnectionString` and `Invoke-DbaXNonQuery`.
+
+A unique staging table isolates retries and concurrent imports; the `finally` block removes it even when validation or merge fails. Validate types, required columns, row counts, duplicate keys, and business rules before changing production data.
 
 ## Write directly only for append-only rows
 
