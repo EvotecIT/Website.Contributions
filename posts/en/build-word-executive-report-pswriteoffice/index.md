@@ -138,6 +138,8 @@ WordTable -Document $document -InputObject $services -Style GridTable4Accent1 -L
 
 That is the difference between "we exported data" and "we created something someone can use in a review meeting."
 
+![Word service scorecard and recommended-actions tables](./images/approval-readback-preview.png)
+
 ## Charts, Notes, And Approvals
 
 The showcase also demonstrates a Word line chart, approval controls, reviewer notes, and internal navigation.
@@ -183,8 +185,6 @@ WordParagraph -Document $document {
 
 $document | Close-OfficeWord -Save
 ```
-
-![Word approval controls and read-back summary preview](./images/approval-readback-preview.png)
 
 ## Reading And Validating The Output
 

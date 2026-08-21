@@ -73,6 +73,52 @@ $process = @(
         AccentColor = '#F59E0B'
     }
 )
+
+$cards = @(
+    [pscustomobject]@{ Title = 'Word'; Items = 'TOC|sections|tables|charts|approvals'; AccentColor = '#2F80ED' }
+    [pscustomobject]@{ Title = 'Excel'; Items = 'dashboard|pivots|sparklines|validation|links'; AccentColor = '#219653' }
+    [pscustomobject]@{ Title = 'PowerPoint'; Items = 'designer plans|process|cards|coverage|notes'; AccentColor = '#9B51E0' }
+    [pscustomobject]@{ Title = 'Blog'; Items = 'screenshots|code|generated covers|artifact links'; AccentColor = '#F2994A' }
+)
+
+$coverage = @(
+    [pscustomobject]@{ Name = 'Engine'; X = 0.22; Y = 0.42; Detail = 'OfficeIMO owns Open XML behavior.' }
+    [pscustomobject]@{ Name = 'PowerShell'; X = 0.48; Y = 0.34; Detail = 'PSWriteOffice owns scripting ergonomics.' }
+    [pscustomobject]@{ Name = 'Examples'; X = 0.68; Y = 0.58; Detail = 'Showcase scripts prove the surface.' }
+    [pscustomobject]@{ Name = 'Website'; X = 0.82; Y = 0.36; Detail = 'Blog posts turn artifacts into adoption.' }
+)
+
+$capabilities = @(
+    [pscustomobject]@{ Heading = 'Readable by humans'; Body = 'Outputs should look like business artifacts, not raw exports.'; Items = 'visual hierarchy|navigation|metadata' }
+    [pscustomobject]@{ Heading = 'Useful to scripts'; Body = 'Generated files should be inspectable and testable.'; Items = 'summaries|parts|deterministic paths' }
+    [pscustomobject]@{ Heading = 'Fast enough to reuse'; Body = 'Examples should avoid desktop Office for generation.'; Items = 'Open XML|small fixtures|single-save flow' }
+)
+
+$caseStudy = @(
+    [pscustomobject]@{ Heading = 'Problem'; Body = 'Basic examples hide how much OfficeIMO can already produce.' }
+    [pscustomobject]@{ Heading = 'Approach'; Body = 'Expose semantic PowerPoint plans and richer Office examples through PSWriteOffice.' }
+    [pscustomobject]@{ Heading = 'Outcome'; Body = 'A test-drive deck that remains editable and visually credible.' }
+)
+
+$metrics = @(
+    [pscustomobject]@{ Value = '3'; Label = 'flagship products' }
+    [pscustomobject]@{ Value = '1'; Label = 'shared showcase plan' }
+    [pscustomobject]@{ Value = '0'; Label = 'desktop Office dependency' }
+)
+
+$chartRows = @(
+    [pscustomobject]@{ Product = 'Word'; Coverage = 82; Polish = 72 }
+    [pscustomobject]@{ Product = 'Excel'; Coverage = 91; Polish = 83 }
+    [pscustomobject]@{ Product = 'PowerPoint'; Coverage = 76; Polish = 68 }
+)
+
+$tableRows = @(
+    [pscustomobject]@{ Area = 'Designer bridge'; Status = 'Added'; Next = 'Add more variant knobs' }
+    [pscustomobject]@{ Area = 'Showcase deck'; Status = 'Added'; Next = 'Export screenshots' }
+    [pscustomobject]@{ Area = 'Blog post'; Status = 'Planned'; Next = 'Write after visuals' }
+)
+
+$path = '.\PSWriteOffice-Service-Brief.pptx'
 ```
 
 Those objects become a semantic deck plan:
@@ -107,6 +153,12 @@ $plan = New-OfficePowerPointDeckPlan {
         -Subtitle 'The showcase should be practical enough to copy and attractive enough to publish.' `
         -Sections $capabilities `
         -Seed 'quality-bar'
+
+    Add-OfficePowerPointPlanCaseStudy `
+        -Title 'PowerPoint designer bridge' `
+        -Sections $caseStudy `
+        -Metrics $metrics `
+        -Seed 'designer-case-study'
 }
 ```
 
@@ -141,43 +193,43 @@ PptNew -Path $path {
         -LayoutStrategy ContentFirst
 
     $chartSlide = PptSlide -PassThru
-    PptTitle -Slide $chartSlide -Title 'Showcase coverage by product'
+    PptTitle -Slide $chartSlide -Title 'Coverage and polish scorecard'
 
     PptChart `
         -Slide $chartSlide `
-        -Data $coverageRows `
+        -Data $chartRows `
         -CategoryProperty Product `
-        -SeriesProperty Coverage `
+        -SeriesProperty Coverage,Polish `
         -Type ClusteredColumn `
-        -Title 'Coverage by product' `
-        -X 60 `
-        -Y 130 `
-        -Width 520 `
-        -Height 310
+        -Title 'Current Surface vs Polish Target' `
+        -X 58 `
+        -Y 118 `
+        -Width 610 `
+        -Height 265
 
-    PptNotes -Slide $chartSlide -Text 'Use this slide to explain current coverage and known follow-up areas.'
+    PptNotes -Slide $chartSlide -Text 'Use this slide as the bridge between the designer slides and the concrete backlog.'
 
     $tableSlide = PptSlide -PassThru
-    PptTitle -Slide $tableSlide -Title 'Implementation checklist'
+    PptTitle -Slide $tableSlide -Title 'Immediate implementation path'
 
     PptTable `
         -Slide $tableSlide `
-        -Data $checklist `
-        -X 55 `
-        -Y 120 `
-        -Width 820 `
-        -Height 300
+        -Data $tableRows `
+        -X 64 `
+        -Y 132 `
+        -Width 590 `
+        -Height 210
 
-    PptNotes -Slide $tableSlide -Text 'Keep this slide as the handoff checklist for the next polish pass.'
+    PptNotes -Slide $tableSlide -Text 'Close with the next concrete pull request slices: visual screenshots, blog drafts, and richer wrappers.'
 
     PptSection -Name 'Designer story' -StartSlideIndex 0
-    PptSection -Name 'Evidence appendix' -StartSlideIndex 5
+    PptSection -Name 'Evidence appendix' -StartSlideIndex 6
     PptTransition -Slide $chartSlide -Transition PushLeft
     Get-OfficePowerPointSlide -Index 0 | PptTransition -Transition Fade
 }
 ```
 
-![PowerPoint evidence preview showing generated chart and table slides](./images/chart-slide.png)
+![PowerPoint chart slide generated by the shown Coverage and Polish series](./images/chart-slide.png)
 
 The block uses the concise aliases consistently. The equivalent canonical names remain available in command help. The output is not a static export: it is a deck you can continue editing, presenting, importing into another deck, or using as a template.
 

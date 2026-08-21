@@ -78,6 +78,7 @@ In C#, use HtmlTinkerX to parse the HTML table and convert it into a `DataTable`
 ```csharp
 using HtmlTinkerX;
 using OfficeIMO.Excel;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
@@ -96,7 +97,9 @@ List<HtmlTableResult> htmlTables = HtmlParser.ParseTablesWithAngleSharpDetailed(
     cellTextFormat: HtmlCellTextFormat.Compact,
     includeLinkUrls: true);
 
-DataTable services = htmlTables[0].ToDataTable("Services", inferTypes: true);
+HtmlTableResult serviceTable = htmlTables.Single(table =>
+    string.Equals(table.Metadata.Id, "services", StringComparison.OrdinalIgnoreCase));
+DataTable services = serviceTable.ToDataTable("Services", inferTypes: true);
 
 using var workbook = ExcelDocument.Create("ServiceStatus.xlsx");
 ExcelSheet sheet = workbook.AddWorksheet("Services");
