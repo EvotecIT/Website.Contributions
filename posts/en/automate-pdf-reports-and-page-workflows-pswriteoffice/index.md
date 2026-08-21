@@ -53,10 +53,19 @@ Saved constructors are quiet by default. You do not need `Out-Null` or a suppres
 Use a text run when formatting changes inside one line. The columnar form keeps the content readable when values come from an object:
 
 ```powershell
-PdfText -Run @{
-    Text  = 'Owner: ', $finding.Owner, '    Due: ', $finding.Due, '    Severity: ', $finding.Severity
-    Bold  = $true, $false, $true, $false, $true, $false
-    Color = $null, $null, $null, $null, $null, 'Crimson'
+$finding = [pscustomobject]@{
+    Owner = 'Identity'
+    Due = '2026-08-28'
+    Severity = 'High'
+}
+
+PdfNew -Path '.\Finding-Summary.pdf' {
+    PdfHeading 'Finding summary'
+    PdfText -Run @{
+        Text  = 'Owner: ', $finding.Owner, '    Due: ', $finding.Due, '    Severity: ', $finding.Severity
+        Bold  = $true, $false, $true, $false, $true, $false
+        Color = $null, $null, $null, $null, $null, 'Crimson'
+    }
 }
 ```
 

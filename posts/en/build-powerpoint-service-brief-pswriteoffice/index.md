@@ -140,7 +140,7 @@ PptNew -Path $path {
         -CreativeDirectionPack TechnicalMap `
         -LayoutStrategy ContentFirst
 
-    $chartSlide = PptSlide
+    $chartSlide = PptSlide -PassThru
     PptTitle -Slide $chartSlide -Title 'Showcase coverage by product'
 
     PptChart `
@@ -157,7 +157,7 @@ PptNew -Path $path {
 
     PptNotes -Slide $chartSlide -Text 'Use this slide to explain current coverage and known follow-up areas.'
 
-    $tableSlide = PptSlide
+    $tableSlide = PptSlide -PassThru
     PptTitle -Slide $tableSlide -Title 'Implementation checklist'
 
     PptTable `
@@ -171,7 +171,7 @@ PptNew -Path $path {
     PptNotes -Slide $tableSlide -Text 'Keep this slide as the handoff checklist for the next polish pass.'
 
     PptSection -Name 'Designer story' -StartSlideIndex 0
-    PptSection -Name 'Evidence appendix' -StartSlideIndex 6
+    PptSection -Name 'Evidence appendix' -StartSlideIndex 5
     PptTransition -Slide $chartSlide -Transition PushLeft
     Get-OfficePowerPointSlide -Index 0 | PptTransition -Transition Fade
 }
@@ -187,7 +187,7 @@ When normal PowerShell control flow decides which slides to add, keep the presen
 
 ```powershell
 $presentation = New-OfficePowerPoint -Path '.\Customer-Briefing.pptx' -NoSave
-$slide = Add-OfficePowerPointSlide -Presentation $presentation -LayoutType Text
+$slide = Add-OfficePowerPointSlide -Presentation $presentation -LayoutType Text -PassThru
 Set-OfficePowerPointSlideTitle -Slide $slide -Title 'Actions'
 Add-OfficePowerPointTextBox -Slide $slide -Text 'Confirm the production date.' -X 90 -Y 170 -Width 700 -Height 60
 $presentation | Save-OfficePowerPoint

@@ -63,6 +63,38 @@ $services = @(
         Evidence = 'remote-access'
     }
 )
+
+$trend = @(
+    [pscustomobject]@{ Month = 'Jan'; Availability = 99.1; Incidents = 14; Automation = 62 }
+    [pscustomobject]@{ Month = 'Feb'; Availability = 99.2; Incidents = 12; Automation = 66 }
+    [pscustomobject]@{ Month = 'Mar'; Availability = 99.4; Incidents = 10; Automation = 71 }
+    [pscustomobject]@{ Month = 'Apr'; Availability = 99.3; Incidents = 11; Automation = 74 }
+    [pscustomobject]@{ Month = 'May'; Availability = 99.6; Incidents = 8;  Automation = 79 }
+    [pscustomobject]@{ Month = 'Jun'; Availability = 99.7; Incidents = 6;  Automation = 83 }
+)
+
+$legend = @(
+    [pscustomobject]@{ Status = 'Healthy'; Meaning = 'Stable service posture' }
+    [pscustomobject]@{ Status = 'Watch';   Meaning = 'Owner follow-up required' }
+    [pscustomobject]@{ Status = 'Risk';    Meaning = 'Immediate action required' }
+)
+
+$statusMix = $services |
+    Group-Object Status |
+    ForEach-Object { [pscustomobject]@{ Status = $_.Name; Count = $_.Count } }
+
+$ownerSummary = $services |
+    Group-Object Owner |
+    ForEach-Object {
+        [pscustomobject]@{
+            Owner         = $_.Name
+            Services      = $_.Count
+            AverageHealth = [math]::Round(($_.Group | Measure-Object Health -Average).Average, 1)
+            Incidents     = ($_.Group | Measure-Object Incidents -Sum).Sum
+        }
+    }
+
+$path = '.\Operational-Dashboard.xlsx'
 ```
 
 The important part is that the script writes the workbook as Excel structure, not as a flat file with decoration. Tables remain tables, formulas remain formulas, hyperlinks remain hyperlinks, and the workbook can keep living after generation.
@@ -85,12 +117,13 @@ The larger DSL below is useful because this workbook needs several sheets, formu
 The summary sheet combines formulas, a styled table, chart formatting, freeze panes, and print defaults.
 
 ```powershell
-New-OfficeExcel -Path $path {
-    ExcelSheet 'Summary' {
-        ExcelCell -Address 'A1' -Value 'Operational Dashboard' -Bold -FontSize 20
-        ExcelCell -Address 'B4' -Formula 'AVERAGE(Services!C2:C9)' -NumberFormat '0.0'
-        ExcelCell -Address 'B5' -Formula 'SUM(Services!D2:D9)'
-        ExcelCell -Address 'B6' -Formula 'AVERAGE(Trend!D2:D7)' -NumberFormat '0%'
+$workbook = New-OfficeExcel -Path $path -NoSave
+
+ExcelSheet -Document $workbook 'Summary' {
+        ExcelRow -Row 1 -Values 'Operational Dashboard' -Bold $true
+        ExcelCell -Address 'B4' -Formula 'AVERAGE(Services!C2:C3)' -NumberFormat '0.0'
+        ExcelCell -Address 'B5' -Formula 'SUM(Services!D2:D3)'
+        ExcelCell -Address 'B6' -Formula 'AVERAGE(Trend!D2:D7)/100' -NumberFormat '0%'
 
         ExcelTable -Data $legend `
             -TableName 'StatusLegend' `
@@ -110,11 +143,11 @@ New-OfficeExcel -Path $path {
             -Row 7 `
             -Column 9 `
             -Type Doughnut `
-            -Title 'Status Mix' |
-            Set-OfficeExcelChartLegend -Position Right |
-            Set-OfficeExcelChartDataLabels -ShowValue $true -ShowCategoryName $true |
+            -Title 'Status Mix' `
+            -PassThru |
+            Set-OfficeExcelChartLegend -Position Right -PassThru |
+            Set-OfficeExcelChartDataLabels -ShowValue $true -ShowCategoryName $true -PassThru |
             Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
-    }
 }
 ```
 
@@ -124,10 +157,8 @@ The output remains a normal `.xlsx`: formulas are formulas, tables are tables, c
 
 The `Services` sheet is designed for action. It uses a structured table, validation list, color scale, data bars, traffic-light icons, and evidence links generated from a header.
 
-![Service detail sheet preview with conditional formatting, validation, evidence links, and desktop-open proof](./images/service-health-chart.png)
-
 ```powershell
-ExcelSheet 'Services' {
+ExcelSheet -Document $workbook 'Services' {
     ExcelTable -Data $services `
         -TableName 'ServiceHealth' `
         -StartRow 1 `
@@ -137,11 +168,11 @@ ExcelSheet 'Services' {
 
     ExcelFreeze -TopRows 1
     ExcelValidationList -Range 'E2:E50' -Values 'Healthy','Watch','Risk'
-    ExcelConditionalColorScale -Range 'C2:C9' -StartColor '#F8696B' -EndColor '#63BE7B'
-    ExcelConditionalDataBar -Range 'D2:D9' -Color '#5B9BD5'
-    ExcelConditionalIconSet -Range 'C2:C9' -IconSet ThreeTrafficLights1 -Reverse $true
+    ExcelConditionalColorScale -Range 'C2:C3' -StartColor '#F8696B' -EndColor '#63BE7B'
+    ExcelConditionalDataBar -Range 'D2:D3' -Color '#5B9BD5'
+    ExcelConditionalIconSet -Range 'C2:C3' -IconSet ThreeTrafficLights1
 
-    ExcelChart -Range 'A1:D9' `
+    ExcelChart -Range 'A1:D3' `
         -Row 12 `
         -Column 1 `
         -Type BarClustered `
@@ -164,44 +195,50 @@ The dashboard also includes trend and owner-summary sheets so the report can ans
 ![Trend and owner summary preview showing line chart and grouped owner queue](./images/trend-chart.png)
 
 ```powershell
-ExcelSheet 'Trend' {
+ExcelSheet -Document $workbook 'Trend' {
     ExcelTable -Data $trend -TableName 'TrendData' -TableStyle 'TableStyleMedium2' -AutoFit
 
     ExcelChart -TableName 'TrendData' `
         -Row 10 `
         -Column 1 `
         -Type Line `
-        -Title 'Availability, Incidents, and Automation' |
-        Set-OfficeExcelChartLegend -Position Bottom |
-        Set-OfficeExcelChartDataLabels -ShowValue $true -Position Top |
+        -Title 'Availability, Incidents, and Automation' `
+        -PassThru |
+        Set-OfficeExcelChartLegend -Position Bottom -PassThru |
+        Set-OfficeExcelChartDataLabels -ShowValue $true -Position Top -PassThru |
         Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
+}
+
+ExcelSheet -Document $workbook 'Owner Summary' {
+    ExcelTable -Data $ownerSummary -TableName 'OwnerSummary' -TableStyle 'TableStyleMedium5' -AutoFit
+    ExcelConditionalDataBar -Range 'D2:D20' -Color '#ED7D31'
+    ExcelConditionalIconSet -Range 'C2:C20' -IconSet ThreeTrafficLights1
 }
 ```
 
 The owner summary is intentionally table-based because reviewers need a visible action queue. When the analysis itself needs regrouping, use a real PivotTable; the companion `Recipe-Excel-PivotAndSparklines.ps1` demonstrates pivots and row-level trends in a smaller script.
 
-## Navigation And Hidden Notes
+## Hidden Notes And Navigation
 
-After the sheets are created, PSWriteOffice can generate workbook navigation automatically.
-
-```powershell
-ExcelTableOfContents `
-    -SheetName 'Index' `
-    -IncludeNamedRanges `
-    -AddBackLinks `
-    -BackLinkText 'Back to Index'
-```
-
-The hidden `Notes` sheet keeps generation details inside the workbook without cluttering the visible report.
+The hidden `Notes` sheet keeps generation details inside the workbook without cluttering the visible report. After all content sheets exist, generate navigation, save, and close the one live workbook.
 
 ```powershell
-ExcelSheet 'Notes' {
+ExcelSheet -Document $workbook 'Notes' {
     ExcelCell -Address 'A1' -Value 'Generation Notes'
     ExcelCell -Address 'A2' -Value 'This sheet is hidden and carries audit/debugging inputs.'
     ExcelCell -Address 'A5' -Value 'Source'
     ExcelCell -Address 'B5' -Value 'Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1'
     ExcelSheetVisibility -Hide
 }
+
+ExcelTableOfContents `
+    -Document $workbook `
+    -SheetName 'Index' `
+    -IncludeNamedRanges `
+    -AddBackLinks `
+    -BackLinkText 'Back to Index'
+
+$workbook | Close-OfficeExcel -Save
 ```
 
 ## Reading And Proving The Workbook Shape

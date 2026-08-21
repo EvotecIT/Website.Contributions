@@ -64,6 +64,17 @@ $services = @(
         NextAction = 'Finish renewal automation rollout'
     }
 )
+
+$trend = @(
+    [pscustomobject]@{ Month = 'Jan'; Availability = 99.20; Incidents = 8 }
+    [pscustomobject]@{ Month = 'Feb'; Availability = 99.34; Incidents = 7 }
+    [pscustomobject]@{ Month = 'Mar'; Availability = 99.55; Incidents = 6 }
+    [pscustomobject]@{ Month = 'Apr'; Availability = 99.61; Incidents = 5 }
+    [pscustomobject]@{ Month = 'May'; Availability = 99.73; Incidents = 4 }
+    [pscustomobject]@{ Month = 'Jun'; Availability = 99.82; Incidents = 3 }
+)
+
+$path = '.\Executive-Service-Health.docx'
 ```
 
 ## Writing The Document
@@ -82,7 +93,7 @@ $executiveSignals = @(
     }
 )
 
-New-OfficeWord -Path $path {
+$document = New-OfficeWord -Path $path -NoSave {
     WordSection {
         WordHeader {
             WordParagraph {
@@ -109,16 +120,16 @@ New-OfficeWord -Path $path {
 }
 ```
 
-The generated file remains a normal Word document. You can update the table of contents, edit text, accept approvals, copy tables, or reuse the chart in another document.
+`-NoSave` returns the live document. The following sections add to that same document, and the approval section saves and closes it once. The generated file remains a normal Word document that people can edit, review, and reuse.
 
 ## Making Tables Useful
 
 The scorecard is more than an object dump. Rows are formatted based on status, so readers can scan the document before reading every line.
 
 ```powershell
-WordParagraph -Text 'Service Scorecard' -Style Heading1
+WordParagraph -Document $document -Text 'Service Scorecard' -Style Heading1
 
-WordTable -InputObject $services -Style GridTable4Accent1 -Layout AutoFitToWindow {
+WordTable -Document $document -InputObject $services -Style GridTable4Accent1 -Layout AutoFitToWindow {
     WordTableCondition -FilterScript { $_.Status -eq 'Risk' } -BackgroundColor '#fde2e2'
     WordTableCondition -FilterScript { $_.Status -eq 'Watch' } -BackgroundColor '#fff4cc'
     WordTableCondition -FilterScript { $_.Status -eq 'Healthy' } -BackgroundColor '#e2f7e1'
@@ -127,14 +138,13 @@ WordTable -InputObject $services -Style GridTable4Accent1 -Layout AutoFitToWindo
 
 That is the difference between "we exported data" and "we created something someone can use in a review meeting."
 
-![Word service scorecard preview showing conditional table rows and next-action columns](./images/scorecard-preview.png)
-
 ## Charts, Notes, And Approvals
 
 The showcase also demonstrates a Word line chart, approval controls, reviewer notes, and internal navigation.
 
 ```powershell
-WordChart -Type Line `
+WordChart -Document $document `
+    -Type Line `
     -Data $trend `
     -CategoryProperty Month `
     -SeriesProperty Availability, Incidents `
@@ -145,11 +155,11 @@ WordChart -Type Line `
     -YAxisTitle 'Value' `
     -FitToPageWidth
 
-WordParagraph {
+WordParagraph -Document $document {
     WordHyperlink -Text 'Jump back to Executive Summary' -Anchor 'ExecutiveSummary' -Styled
 }
 
-WordParagraph {
+WordParagraph -Document $document {
     WordText 'Risk labels combine incidents, owner feedback, and observed trend.'
     WordEndnote 'The scoring model is intentionally simple for the showcase.'
 }
@@ -158,18 +168,20 @@ WordParagraph {
 Approval fields are created as Word content controls, so the output is still easy to finish manually:
 
 ```powershell
-WordParagraph {
+WordParagraph -Document $document {
     WordText 'Approved for publication: '
     WordCheckBox -Alias 'ApprovedForPublication' -Tag 'approval-publish'
 }
-WordParagraph {
+WordParagraph -Document $document {
     WordText 'Next review date: '
     WordDatePicker -Date (Get-Date '2026-06-15') -Alias 'NextReviewDate'
 }
-WordParagraph {
+WordParagraph -Document $document {
     WordText 'Review status: '
     WordDropDownList -Items 'Draft','Ready for review','Approved' -Alias 'ReviewStatus'
 }
+
+$document | Close-OfficeWord -Save
 ```
 
 ![Word approval controls and read-back summary preview](./images/approval-readback-preview.png)
