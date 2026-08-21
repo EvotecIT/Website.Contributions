@@ -137,6 +137,24 @@ Move-OfficePdfPage `
 
 Use `Join-OfficePdf` to assemble a pack and `Split-OfficePdf` to separate it by page range or pages per document. Keep the source file while validating a transformation; a successful write does not prove that every advanced PDF feature was preserved.
 
+## Export An Office Document To PDF Deliberately
+
+Word, Excel, PowerPoint, Markdown, and RTF creation no longer hide a PDF side effect inside `New-*` or `Save-*`. Create the source artifact first, then request the delivery format explicitly:
+
+```powershell
+New-OfficeWord -Path '.\Service-Review.docx' {
+    WordParagraph -Text 'Service review' -Style Heading1
+    WordParagraph 'This editable report is the source artifact.'
+    WordTable -InputObject $findings -Layout AutoFitToWindow
+}
+
+Export-OfficeDocumentPdf `
+    -InputPath '.\Service-Review.docx' `
+    -Path '.\Service-Review.pdf'
+```
+
+This is the one deliberate `InputPath` exception in the PSWriteOffice public API. `Path` names the PDF being produced, so `InputPath` makes the source role unambiguous. Other commands use `Path` for their primary file, `OutputPath` for a transformed copy, and `DestinationPath` for a copy destination.
+
 ## Extract And Inspect Before Changing
 
 Read-only commands make PDFs useful in search, compliance, and ingestion workflows:
@@ -149,6 +167,28 @@ $pages | Select-Object PageNumber, Text
 Other commands inspect document information, fonts, images, attachments, form fields, annotations, signatures, compliance, interactions, optimization opportunities, and rewrite safety. Use that evidence before redaction, sanitization, optimization, or destructive page changes.
 
 For sensitive content, build a redaction plan from detected text and write a new delivery copy. Do not confuse a visual rectangle with removing the underlying text. `ConvertTo-OfficePdfRedacted` applies actual redaction through the PDF engine.
+
+## Deliver The Result With Mailozaurr
+
+Once the PDF is accepted, Mailozaurr can send the delivery copy without making PSWriteOffice own SMTP or Microsoft Graph:
+
+```powershell
+$mailCredential = Get-Secret -Name 'Reporting-Smtp-Credential'
+
+Send-EmailMessage `
+    -From 'reports@example.com' `
+    -To 'reviewers@example.com' `
+    -Subject 'Access review' `
+    -Text 'The editable source and PDF delivery copy are attached.' `
+    -Attachment '.\Service-Review.docx', '.\Service-Review.pdf' `
+    -Server 'smtp.example.com' `
+    -Credential $mailCredential `
+    -UseSsl
+```
+
+Mailozaurr owns message composition, authentication, transport, and mailbox operations. PSWriteOffice owns the generated document artifacts. That boundary also keeps provider choices out of reporting code: the same files can be delivered through SMTP, Microsoft Graph, Gmail, SendGrid, Mailgun, or Amazon SES by changing the Mailozaurr connection layer.
+
+`Get-Secret` comes from Microsoft.PowerShell.SecretManagement. Keep the credential in the secret provider used by the scheduled job or CI runner, not in the report script.
 
 ## Choose The Smallest Surface
 

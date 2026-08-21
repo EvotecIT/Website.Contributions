@@ -201,7 +201,7 @@ This is the same engine and the same document model. Choose the shape that makes
 The showcase finishes by reading the generated deck back. That makes the example useful in CI and in demos because you can prove the deck is more than a file on disk.
 
 ```powershell
-$presentation = Get-OfficePowerPoint -FilePath $path
+$presentation = Get-OfficePowerPoint -Path $path
 $summary = @(Get-OfficePowerPointSlideSummary -Presentation $presentation)
 $presentation | Close-OfficePowerPoint
 

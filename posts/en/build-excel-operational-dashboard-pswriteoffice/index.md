@@ -213,7 +213,7 @@ $workbook = Get-OfficeExcel -Path $path -ReadOnly
 $sheets = @($workbook.Sheets)
 $summary = [pscustomobject]@{
     SheetCount = $sheets.Count
-    TableCount = $workbook.GetTables().Count
+    TableCount = @(Get-OfficeExcelTable -Document $workbook).Count
     ChartCount = ($sheets | ForEach-Object { $_.Charts.Count } | Measure-Object -Sum).Sum
 }
 $sheetSummary = $sheets |
@@ -251,6 +251,57 @@ $namedRanges = Get-OfficeExcelNamedRange -Path $path
 ```
 
 That gives you both kinds of validation: "is the workbook shaped correctly?" and "does the data still say what I expected?"
+
+## From Windows Events To A Delivered Report
+
+The workbook does not care where its objects came from. A scheduled Windows operations job can query PSEventViewer, write the detailed rows to Excel, create a compact PDF summary, and let Mailozaurr deliver both artifacts:
+
+```powershell
+Import-Module PSEventViewer
+Import-Module PSWriteOffice
+Import-Module Mailozaurr
+
+$outputDirectory = (New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'Output') -Force).FullName
+$excelPath = Join-Path $outputDirectory 'System-Events.xlsx'
+$pdfPath = Join-Path $outputDirectory 'System-Events.pdf'
+
+$events = @(
+    Get-EVXEvent `
+        -LogName System `
+        -TimePeriod Last24Hours `
+        -ReadMode Message `
+        -MaxEvents 500 |
+        Select-Object TimeCreated, MachineName, ProviderName, Id, LevelDisplayName, Message
+)
+
+$events | Export-OfficeExcel `
+    -Path $excelPath `
+    -WorksheetName Events `
+    -TableName SystemEvents `
+    -AutoFit `
+    -FreezeTopRow
+
+New-OfficePdf -Path $pdfPath {
+    PdfHeading 'System event summary'
+    PdfParagraph "Collected $($events.Count) events during the last 24 hours."
+    PdfTable -InputObject ($events | Select-Object -First 25 TimeCreated, MachineName, ProviderName, Id, LevelDisplayName)
+}
+
+$mailCredential = Get-Secret -Name 'Operations-Smtp-Credential'
+Send-EmailMessage `
+    -From 'reports@example.com' `
+    -To 'operations@example.com' `
+    -Subject 'Daily Windows event report' `
+    -Text 'The detailed Excel workbook and review PDF are attached.' `
+    -Attachment $excelPath, $pdfPath `
+    -Server 'smtp.example.com' `
+    -Credential $mailCredential `
+    -UseSsl
+```
+
+Each module keeps one job. PSEventViewer owns bounded event-log queries and message projection. PSWriteOffice owns the editable workbook and fixed-layout summary. Mailozaurr owns authentication, transport, and attachments. None of the modules needs a special adapter for the others because ordinary PowerShell objects and file paths are the integration contract.
+
+`Get-Secret` comes from Microsoft.PowerShell.SecretManagement. In a scheduled task or CI job, use the secret provider that environment already trusts rather than putting credentials in the report script.
 
 ## Performance And Scale
 
