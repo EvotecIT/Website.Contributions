@@ -16,7 +16,7 @@ tags:
   - officeimo
   - excel
 image: "./cover.png"
-image_alt: "HTML table data flowing into a native Excel workbook using ConvertFrom-HtmlTable and Export-OfficeExcel"
+image_alt: "Analyst selecting a useful web table beside an editable workbook version"
 draft: true
 ---
 
@@ -70,6 +70,12 @@ OfficeIMO should be excellent at Office documents. It should consume normal .NET
 Likewise, HtmlTinkerX should not need to know what Excel is. Its job is to turn HTML into structured information.
 
 That boundary is what makes the stack reusable. If you are building a C# service, you can connect HtmlTinkerX to OfficeIMO.Excel. If you are writing PowerShell, you can pipe PSParseHTML into PSWriteOffice.
+
+## If ImportExcel already fits
+
+The table parser does not require a particular workbook module. Its output is ordinary row objects, `DataTable`, or `DataSet`, so an existing [ImportExcel](https://github.com/dfinke/ImportExcel) workflow can remain exactly where it is useful.
+
+This article uses PSWriteOffice because the companion examples continue into workbook structure, charts, read-back, and other Office formats. That is a workflow choice, not a claim that every HTML-table export needs a new Excel tool. The [PSWriteOffice comparison page](https://github.com/EvotecIT/PSWriteOffice/blob/main/Website/content/project-docs/docs/compare-importexcel-excelfast.md) shows the public command shapes, project scope, and correctness-validated benchmark lanes when the distinction matters.
 
 ## For C# Developers
 

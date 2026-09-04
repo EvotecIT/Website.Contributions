@@ -1,6 +1,6 @@
 ---
-title: "Build a polished Word executive report from PowerShell"
-description: "Create a complete Word report with a native opening panel, table of contents, sections, conditional tables, charts, approval controls, footnotes, endnotes, bookmarks, hyperlinks, watermark, read-back validation, and document metadata using PSWriteOffice."
+title: "Build a review-ready Word executive report from PowerShell"
+description: "Create an editable Word report with a native opening panel, table of contents, sections, conditional tables, charts, approval controls, notes, navigation, and read-back validation using PSWriteOffice."
 date: "2026-05-11"
 language: "en"
 authors:
@@ -15,7 +15,7 @@ tags:
   - word
   - reporting
 image: "./cover.png"
-image_alt: "Microsoft Word showing the generated executive report with report pages, charts, navigation, approvals, and notes"
+image_alt: "Manager and analyst reviewing an editable executive report with charts and action tables"
 draft: true
 ---
 

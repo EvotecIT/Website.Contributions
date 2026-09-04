@@ -15,7 +15,7 @@ tags:
   - pdf
   - reporting
 image: "./cover.png"
-image_alt: "PowerShell pipeline composing a PDF report with positioned content, attachments, form fields, and reordered pages"
+image_alt: "Operations specialist checking a PDF review pack with forms, attachments, and reordered pages"
 draft: true
 ---
 

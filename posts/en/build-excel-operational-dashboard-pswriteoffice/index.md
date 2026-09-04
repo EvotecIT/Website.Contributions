@@ -15,7 +15,7 @@ tags:
   - excel
   - dashboard
 image: "./cover.png"
-image_alt: "Microsoft Excel showing the generated operational dashboard workbook with tables, charts, KPI tiles, links, and navigation"
+image_alt: "Two colleagues reviewing an operational workbook dashboard and marking a follow-up"
 draft: true
 ---
 
@@ -111,6 +111,12 @@ $services | Export-OfficeExcel `
 ```
 
 The larger DSL below is useful because this workbook needs several sheets, formulas, charts, validation, and navigation. It is an escalation from the simple export, not a requirement for every job.
+
+## Where this fits next to ImportExcel
+
+Many PowerShell users already have good reporting scripts built with [ImportExcel](https://github.com/dfinke/ImportExcel). If those scripts create the workbook people need, keep them. PSWriteOffice is another option when Excel belongs to a broader document workflow, when the script needs to inspect or repair workbook structure, or when the same object model also feeds Word, PowerPoint, PDF, CSV, or email artifacts.
+
+The PSWriteOffice repository keeps a [public comparison and reproducible benchmark matrix](https://github.com/EvotecIT/PSWriteOffice/blob/main/Website/content/project-docs/docs/compare-importexcel-excelfast.md). It runs equivalent workbook lanes side by side, validates the files, alternates execution order, and marks unsupported work instead of counting it as a win. Use those results as a starting point for your own workload, not as a reason to rewrite a working report.
 
 ## Building The Summary Sheet
 
@@ -342,7 +348,7 @@ Each module keeps one job. PSEventViewer owns bounded event-log queries and mess
 
 ## Performance And Scale
 
-The dashboard is intentionally built around table and range operations because they scale better than cell-by-cell scripting.
+The dashboard is intentionally built around table and range operations so the script avoids per-cell pipeline and formatting overhead.
 
 - Use `ExcelTable -Data $objects` for rectangular datasets.
 - Use formulas for values Excel should keep recalculating after the file is opened.
@@ -350,6 +356,8 @@ The dashboard is intentionally built around table and range operations because t
 - Apply conditional formatting to ranges instead of formatting every cell in a loop.
 - Keep read-back validation focused on summary counts, used ranges, table names, and critical values.
 - Use hidden sheets for generation notes and audit metadata instead of writing separate sidecar files.
+
+The repository benchmark suite includes object, `DataTable`, `IDataReader`, report-workbook, append, update, chart, pivot, and read-back scenarios against the public alternatives that can perform equivalent work. We do not turn those lanes into one headline number here: table size, types, AutoFit, charts, formulas, updates, and read-back all change the cost. Run the relevant scenario on the target machine and keep the workbook validation enabled.
 
 For larger inventories, split visible sheets by workflow: summary, details, ownership, trend, and notes. That keeps the workbook fast to open and easier to filter.
 
