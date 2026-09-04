@@ -1,6 +1,6 @@
 ---
-title: "Move data between databases and Excel with DbaClientX and PSWriteOffice"
-description: "Practical PowerShell examples for exporting database rows to Excel, importing reviewed workbooks into database staging tables, and choosing between object, DataTable, and streaming reader paths."
+title: "Move data between databases, CSV, and Excel with DbaClientX and PSWriteOffice"
+description: "Practical PowerShell examples for moving database rows through CSV and Excel, loading reviewed files into staging tables, and choosing between objects, DataTable, and streaming reader paths."
 date: "2026-05-23"
 language: "en"
 authors:
@@ -22,17 +22,18 @@ image_alt: "Analyst reviewing a workbook while data moves between two database s
 draft: true
 ---
 
-PowerShell is often the glue between systems that were never designed to talk to each other. A database stores operational data, Excel is where people review and correct that data, and sooner or later somebody needs a reliable path both ways.
+PowerShell is often the glue between systems that were never designed to talk to each other. A database stores operational data, CSV is the common machine-to-machine handoff, Excel is where people review and correct data, and sooner or later somebody needs reliable paths in both directions.
 
 [DbaClientX](https://github.com/EvotecIT/DbaClientX) is a provider-neutral database client for PowerShell and .NET. It can query SQL Server, PostgreSQL, MySQL, Oracle, and SQLite, and it exposes provider-native bulk insert paths for tabular data.
 
-[PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) creates and reads Office files from PowerShell. For this workflow, the important part is Excel: export rows into real `.xlsx` workbooks, import reviewed sheets back as PowerShell objects or `DataTable`, and do it without requiring Microsoft Excel on the machine.
+[PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) creates and reads Office files from PowerShell. For this workflow, the important parts are Excel and CSV: export rows into real `.xlsx` workbooks or bounded-delimiter files, import reviewed data as PowerShell objects, `DataTable`, or `IDataReader`, and do it without requiring Microsoft Excel on the machine.
 
 [OfficeIMO](https://github.com/EvotecIT/OfficeIMO) is the engine underneath PSWriteOffice. It owns the workbook implementation so the PowerShell commands can stay concise while the same workflow scales from a quick export to explicit workbook composition.
 
 The result is a practical data movement story:
 
 - You want database rows in Excel? Query with DbaClientX, export with PSWriteOffice.
+- You want a CSV handoff without turning every row into a `PSCustomObject`? Pass the same reader to `Export-OfficeCsv`.
 - You want a reviewed workbook back in a database? Import with PSWriteOffice, bulk write with DbaClientX.
 - You want to avoid materializing every row as a PowerShell object? Hand an `IDataReader` directly from the database client to the workbook writer.
 - You want the flexible path? Use normal PowerShell objects and let the commands convert them.
@@ -228,6 +229,61 @@ The important detail is `-AsDataTable`. That gives DbaClientX a tabular shape it
 
 A unique staging table isolates retries and concurrent imports; the `finally` block removes it even when validation or merge fails. Validate types, required columns, row counts, duplicate keys, and business rules before changing production data.
 
+## Use the same ownership boundary for CSV
+
+CSV does not need a second database client hidden inside file-format commands. DbaClientX can keep owning the query and connection lifetime while PSWriteOffice owns delimiters, quoting, encoding, compression, and the CSV artifact.
+
+For database-to-CSV streaming, pass the live reader as one input object and dispose it after the writer finishes:
+
+```powershell
+$reader = Invoke-DbaXQuery `
+    -Server 'sql01' `
+    -Database 'Operations' `
+    -Query 'SELECT Id, Name, Status, ModifiedUtc FROM dbo.WorkQueue' `
+    -AsDataReader
+
+try {
+    Export-OfficeCsv `
+        -InputObject $reader `
+        -Path .\WorkQueue.csv `
+        -Delimiter ',' `
+        -Encoding ([System.Text.UTF8Encoding]::new($false))
+} finally {
+    $reader.Dispose()
+}
+```
+
+For CSV-to-database streaming, describe the important column types at the file boundary, then hand the resulting reader to DbaClientX as a single object:
+
+```powershell
+$reader = Import-OfficeCsv `
+    -Path .\ApprovedProducts.csv `
+    -AsDataReader `
+    -ColumnType @{
+        ProductId = [int]
+        UnitPrice = [decimal]
+        Approved = [bool]
+        ApprovedUtc = [datetime]
+    }
+
+try {
+    Write-DbaXTableData `
+        -Provider SqlServer `
+        -ConnectionString $connectionString `
+        -DestinationTable 'dbo.ApprovedProduct_Stage' `
+        -InputObject (, $reader) `
+        -BatchSize 5000
+} finally {
+    $reader.Dispose()
+}
+```
+
+The leading comma in `-InputObject (, $reader)` is intentional: it prevents PowerShell from trying to enumerate the reader before DbaClientX receives it. For SQL Server, that reader can flow into the bulk-copy path without first becoming a full in-memory object array. For providers whose bulk API needs a materialized table, DbaClientX performs the provider-specific handoff.
+
+Use `-InferSchema` when a representative sample is good enough, or `-ColumnType` when the staging contract is known. Explicit types are usually the safer choice for IDs, money, booleans, and timestamps. PSWriteOffice also exposes compressed CSV, null values, date formats, duplicate-header policy, strict or lenient quote handling, decompression limits, and parse-error behavior; those remain file-format concerns instead of becoming provider-specific switches in DbaClientX.
+
+This composition is also why four extra commands such as `Export-DbaXQueryCsv` or `Import-DbaXCsv` would add little. The two modules already meet at standard .NET tabular contracts, and keeping that seam visible lets each one remain useful on its own.
+
 ## Write directly only for append-only rows
 
 Sometimes the workbook contains guaranteed-new rows for an append-only import log. In that narrow case, writing directly to the destination table can be acceptable:
@@ -389,7 +445,7 @@ The ownership stays simple: DbaClientX queries and writes database data, PSWrite
 
 This pattern fits a lot of everyday operational work:
 
-- Replace CSV handoffs with real Excel workbooks.
+- Use compact CSV for machine handoffs and real Excel workbooks for human review.
 - Export SQL Server review queues to business owners.
 - Load reviewed workbook changes into staging tables.
 - Build audit handoff workbooks from PostgreSQL, MySQL, Oracle, SQLite, or SQL Server.
@@ -403,9 +459,13 @@ The short version:
 $rows = Invoke-DbaXQuery ... -ReturnType DataTable
 Export-OfficeExcel -InputObject $rows -Path .\Data.xlsx -WorksheetName Data -TableName Data
 
+# Database to CSV without object materialization
+$reader = Invoke-DbaXQuery ... -AsDataReader
+try { Export-OfficeCsv -InputObject $reader -Path .\Data.csv } finally { $reader.Dispose() }
+
 # Excel to database
 $table = Import-OfficeExcel -Path .\Data.xlsx -WorksheetName Data -AsDataTable
 $table | Write-DbaXTableData -Provider SqlServer -ConnectionString $connectionString -DestinationTable dbo.Data_Stage
 ```
 
-That is the workflow: query, export, review, import, bulk write, validate, merge.
+That is the workflow: query, export, review where needed, import, bulk write, validate, merge.
