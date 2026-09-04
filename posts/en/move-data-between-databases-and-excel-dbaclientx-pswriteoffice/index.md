@@ -1,6 +1,6 @@
 ---
 title: "Move data between databases and Excel with DbaClientX and PSWriteOffice"
-description: "Practical PowerShell examples for exporting database rows to Excel, importing reviewed workbooks back to database staging tables, and choosing the fast path when moving tabular data."
+description: "Practical PowerShell examples for exporting database rows to Excel, importing reviewed workbooks into database staging tables, and choosing between object, DataTable, and streaming reader paths."
 date: "2026-05-23"
 language: "en"
 authors:
@@ -18,13 +18,13 @@ tags:
   - mailozaurr
   - powershell
 image: "./cover.png"
-image_alt: "Database rows moving through PowerShell into an Excel workbook and back"
+image_alt: "Analyst reviewing a workbook while data moves between two database systems"
 draft: true
 ---
 
 PowerShell is often the glue between systems that were never designed to talk to each other. A database stores operational data, Excel is where people review and correct that data, and sooner or later somebody needs a reliable path both ways.
 
-[DbaClientX](https://github.com/EvotecIT/DbaClientX) is a lightweight database client for PowerShell and .NET. It can query SQL Server, PostgreSQL, MySQL, Oracle, and SQLite, and it exposes provider bulk insert paths for fast table loading.
+[DbaClientX](https://github.com/EvotecIT/DbaClientX) is a provider-neutral database client for PowerShell and .NET. It can query SQL Server, PostgreSQL, MySQL, Oracle, and SQLite, and it exposes provider-native bulk insert paths for tabular data.
 
 [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) creates and reads Office files from PowerShell. For this workflow, the important part is Excel: export rows into real `.xlsx` workbooks, import reviewed sheets back as PowerShell objects or `DataTable`, and do it without requiring Microsoft Excel on the machine.
 
@@ -34,8 +34,18 @@ The result is a practical data movement story:
 
 - You want database rows in Excel? Query with DbaClientX, export with PSWriteOffice.
 - You want a reviewed workbook back in a database? Import with PSWriteOffice, bulk write with DbaClientX.
-- You want the fast path? Move tabular data as `DataTable` or `IDataReader` instead of reshaping every row by hand.
+- You want to avoid materializing every row as a PowerShell object? Hand an `IDataReader` directly from the database client to the workbook writer.
 - You want the flexible path? Use normal PowerShell objects and let the commands convert them.
+
+## How this fits with dbatools and ImportExcel
+
+This is not an argument that existing scripts need to move.
+
+[dbatools](https://github.com/dataplat/dbatools) is an established SQL Server automation toolkit. If a job already uses its instance, backup, migration, or administrative commands, keeping data movement in that ecosystem may be the clearest choice. DbaClientX becomes interesting when the same provider-neutral data contract needs to work from PowerShell and .NET, or when a live reader should pass directly into another library.
+
+[ImportExcel](https://github.com/dfinke/ImportExcel) is the familiar choice for many PowerShell-to-Excel scripts. If `Export-Excel` and `Import-Excel` already produce the workbook you need, there is no migration prize for changing them. PSWriteOffice is useful when the workbook is one part of a wider Word, PowerPoint, PDF, CSV, or document-inspection workflow, or when direct `DataTable` and `IDataReader` handoffs matter.
+
+The modules also compose. You can keep dbatools for the surrounding SQL Server job, use ImportExcel for a workbook that already depends on it, and introduce DbaClientX or PSWriteOffice only where their public contracts solve a specific problem.
 
 ## Connect to the database
 
@@ -103,20 +113,27 @@ $connectionString = New-DbaXConnectionString `
     -Ssl `
     -TrustServerCertificate:$trustServerCertificate
 
-$rows = Invoke-DbaXQueryStream `
-    -Provider SqlServer `
-    -ConnectionString $connectionString `
+$reader = Invoke-DbaXQuery `
+    -Server $databaseServer `
+    -Database $databaseName `
+    -TrustServerCertificate:$trustServerCertificate `
     -Query 'SELECT Id, Name, Status, ModifiedUtc FROM dbo.WorkQueue' `
-    -ReturnType DataTable
+    -AsDataReader
 
-Export-OfficeExcel `
-    -InputObject $rows `
-    -Path .\WorkQueue.xlsx `
-    -WorksheetName 'Work Queue' `
-    -TableName 'WorkQueue' `
-    -AutoFit `
-    -FreezeTopRow
+try {
+    Export-OfficeExcel `
+        -InputObject $reader `
+        -Path .\WorkQueue.xlsx `
+        -WorksheetName 'Work Queue' `
+        -TableName 'WorkQueue' `
+        -AutoFit `
+        -FreezeTopRow
+} finally {
+    $reader.Dispose()
+}
 ```
+
+The query uses DbaClientX's direct SQL Server parameter set, which enables encryption and applies the explicit certificate-trust decision. The generated connection string is kept for the streaming example and the later bulk-write path.
 
 That produces a native `.xlsx` workbook, not a CSV renamed to Excel. The table can be filtered, formatted, and opened by Excel without requiring Excel on the machine that created it.
 
@@ -136,7 +153,7 @@ Invoke-DbaXQueryStream `
 
 That is the flexible path. It is easy to read and easy to extend with `Where-Object`, `Select-Object`, and calculated properties.
 
-For large exports, prefer tabular input such as `DataTable` or `IDataReader`. That gives the Excel engine a shape it can write efficiently and avoids paying the cost of rebuilding the table from loose PowerShell objects.
+For a pass-through SQL Server export, the owned `IDataReader` above keeps the rows streaming until PSWriteOffice has consumed them. Dispose it in `finally` because the reader owns the live command and connection. Use `DataTable` instead when the script needs to inspect, validate, or reshape the complete dataset before writing the workbook.
 
 ## Import Excel rows to a database table
 
@@ -265,7 +282,7 @@ $audit | Write-DbaXTableData `
 
 For SQL Server, PostgreSQL, MySQL, Oracle, and SQLite, the workflow stays the same: import or build tabular data, choose the provider, give DbaClientX the connection string, and write to the target table.
 
-## Pick the fast path or the flexible path
+## Pick the shape that fits the job
 
 There are two practical ways to move data.
 
@@ -278,7 +295,7 @@ Invoke-DbaXQuery -Server 'sql01' -Database 'Operations' -Query 'SELECT Id, Statu
     Export-OfficeExcel -Path .\OpenWork.xlsx -WorksheetName Open -TableName OpenWork
 ```
 
-Use the faster tabular path when the dataset is large or the script runs often:
+Use a buffered tabular path when the script needs the whole result for validation or transformation:
 
 ```powershell
 $rows = Invoke-DbaXQuery `
@@ -295,7 +312,31 @@ Export-OfficeExcel `
     -AutoFit
 ```
 
-The commands still look like normal PowerShell, but the data stays in a form that database and workbook libraries can process efficiently.
+The commands still look like normal PowerShell, but the data stays in a form that database and workbook libraries understand directly. When the rows only need to pass through, use the `IDataReader` example from the export section to avoid buffering the complete result.
+
+## What the benchmarks actually measure
+
+We built these paths while trying to shorten our own reporting jobs, but the useful question is not which module wins in the abstract. It is whether the exact job is equivalent, the output is correct, and the result repeats on the machine that will run it.
+
+The [DbaClientX repository includes PowerForge suites](https://github.com/EvotecIT/DbaClientX#sql-server-benchmarks) for direct SQL Server reads and writes. In the current committed 25,000-row snapshot, the comparable `DataTable` lanes reported these medians:
+
+| Operation | DbaClientX | dbatools |
+| --- | ---: | ---: |
+| Read all rows into a `DataTable` | 32 ms | 43 ms |
+| Write a `DataTable` with provider bulk copy | 40 ms | 60 ms |
+
+Those are client-side data-movement lanes, not a comparison of the much broader dbatools command set. The runner seeds isolated tables outside the measurement and validates row counts plus identifier and score sums afterward.
+
+A separate dated run on 10 August 2026 measured the complete 25,000-row SQL Server to XLSX to SQL Server job. The DbaClientX lane streamed through PSWriteOffice and OfficeIMO; the comparison used ImportExcel 7.8.10 through its public object pipeline. Both produced the same table contract and passed strict SQL-side row, schema, and value checks.
+
+| Engine path | L3 domain 0 median | L3 domain 1 median |
+| --- | ---: | ---: |
+| DbaClientX + PSWriteOffice + OfficeIMO | 218.62 ms | 174.12 ms |
+| ImportExcel 7.8.10 | 3,519.73 ms | 2,926.71 ms |
+
+The two columns are deliberate. This workstation uses an AMD Ryzen 9 9950X3D2 with two performance domains, so the full comparison was repeated with one 16-logical-processor affinity mask at a time. The run used PowerShell 7.6.4, SQL Server 17.0.1125.2, High process priority, five warmups, fifteen rotated measured iterations, and no removed outliers. All 60 measured round trips passed validation.
+
+The gap is meaningful for that source-linked fixture; it is not a promise that every workbook, database, CPU, or module version will produce the same ratio. Read the [SQL Server benchmark notes](https://github.com/EvotecIT/DbaClientX/blob/master/docs/sqlserver-benchmark-notes.md), keep both processor domains visible on heterogeneous machines, and rerun the matrix with the row shape and workbook features used in production.
 
 ## Publish The Review Pack
 
