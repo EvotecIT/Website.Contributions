@@ -21,13 +21,24 @@ draft: true
 
 Word automation is easy when the target is a plain export. It becomes much more useful when the output is something a manager, auditor, or service owner can open, navigate, review, approve, and reuse without asking for the original script.
 
-This showcase builds a complete executive service-health report from PowerShell objects. It uses the same operational story as the Excel dashboard and PowerPoint brief in this series: services, owners, health signals, incidents, trends, and next actions. The generated document is not a screenshot or a blob. It is an editable `.docx` with real sections, headings, tables, charts, bookmarks, hyperlinks, content controls, footnotes, endnotes, metadata, and a watermark.
+This showcase builds an editable executive service-health report from PowerShell objects. It shares the Excel dashboard's operational theme: services, owners, health signals, incidents, trends, and next actions. The compact example below creates a `.docx` with headings, tables, a chart, bookmarks, hyperlinks, content controls, footnotes, endnotes, and metadata. The full showcase adds more services, recommended actions, and watermarking.
 
-![Complete Word report preview showing navigation, scorecards, chart, approval controls, and notes](./images/executive-report-banner.png)
+![Opening and scorecard portion of the compact example after updating the table of contents in desktop Word](./images/executive-report-banner.png)
+
+## Before you start
+
+Use PowerShell 7 and install the public module versions used for this article:
+
+```powershell
+Install-Module PSWriteOffice -RequiredVersion 3.0.6 -Scope CurrentUser
+Import-Module PSWriteOffice -RequiredVersion 3.0.6
+```
+
+Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
 
 ## What The Example Builds
 
-The full script lives in `Examples/Showcase/Showcase-Word-ExecutiveReport.ps1` in the PSWriteOffice repository. It creates a report with:
+The [full showcase script](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-Word-ExecutiveReport.ps1) creates a larger report than the compact example below. Its features include:
 
 - a native opening panel built from Word paragraphs and tables
 - header and footer content
@@ -138,8 +149,6 @@ WordTable -Document $document -InputObject $services -Style GridTable4Accent1 -L
 
 That is the difference between "we exported data" and "we created something someone can use in a review meeting."
 
-![Word service scorecard and recommended-actions tables](./images/approval-readback-preview.png)
-
 ## Charts, Notes, And Approvals
 
 The showcase also demonstrates a Word line chart, approval controls, reviewer notes, and internal navigation.
@@ -149,12 +158,12 @@ WordChart -Document $document `
     -Type Line `
     -Data $trend `
     -CategoryProperty Month `
-    -SeriesProperty Availability, Incidents `
-    -Title 'Availability and incident trend' `
+    -SeriesProperty Incidents `
+    -Title 'Monthly incident trend' `
     -Legend `
     -LegendPosition Bottom `
     -XAxisTitle 'Month' `
-    -YAxisTitle 'Value' `
+    -YAxisTitle 'Incidents' `
     -FitToPageWidth
 
 WordParagraph -Document $document {
@@ -183,6 +192,7 @@ WordParagraph -Document $document {
     WordDropDownList -Items 'Draft','Ready for review','Approved' -Alias 'ReviewStatus'
 }
 
+Update-OfficeWordTableOfContents -Document $document
 $document | Close-OfficeWord -Save
 ```
 
@@ -203,7 +213,7 @@ $document | Close-OfficeWord
 $reportShape
 ```
 
-That read-back step is more than a demo flourish. It lets you fail a build if the report accidentally loses its chart, content controls, or core tables.
+The update command marks the table of contents for refresh when Word opens the document. Its cached placeholder may remain visible in readers that do not update fields. Update the table of contents in Word before distributing the final paginated report. Structural read-back lets you fail a build if the report loses its chart, content controls, or core tables:
 
 ```powershell
 if ($reportShape.Charts -lt 1) {

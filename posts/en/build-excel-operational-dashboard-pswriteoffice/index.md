@@ -21,13 +21,24 @@ draft: true
 
 Good Excel automation is not about pushing two rows into a workbook. A useful workbook gives readers a starting point, a way to drill into details, and enough formatting to find risk quickly without losing the underlying data.
 
-This showcase builds a multi-sheet operational dashboard from PowerShell objects. It uses the same service-health scenario as the Word report and PowerPoint brief: services, owners, health scores, incidents, trend data, and remediation actions. It creates a summary page, service detail table, trend sheet, owner summary, hidden notes sheet, generated table of contents, internal backlinks, evidence hyperlinks, formulas, validation, conditional formatting, charts, page setup, headers, footers, and a structural summary check.
+This showcase builds a multi-sheet operational dashboard from PowerShell objects. It uses the same service-health theme as the Word report: services, owners, health scores, incidents, trend data, and remediation actions. The compact example below creates six sheets with formulas, tables, validation, conditional formatting, charts, navigation, and a structural summary check. The linked full showcase adds a larger dataset and print settings.
 
-![Full Excel operational dashboard preview showing KPI tiles, tables, charts, links, and hidden notes](./images/summary-status-chart.png)
+![Summary from the two-service example, calculated in desktop Excel, with health 87, eight incidents, and a balanced status chart](./images/summary-status-chart.png)
+
+## Before you start
+
+Use PowerShell 7 and install the public module versions used for this article:
+
+```powershell
+Install-Module PSWriteOffice -RequiredVersion 3.0.6 -Scope CurrentUser
+Import-Module PSWriteOffice -RequiredVersion 3.0.6
+```
+
+Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
 
 ## Workbook Shape
 
-The full script lives in `Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1` in the PSWriteOffice repository.
+The [full showcase script](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1) includes a larger dataset and additional formatting. Run the following blocks in order for the two-service example shown here.
 
 It produces a workbook with these sheets:
 
@@ -120,15 +131,18 @@ The PSWriteOffice repository keeps a [public comparison and reproducible benchma
 
 ## Building The Summary Sheet
 
-The summary sheet combines formulas, a styled table, chart formatting, freeze panes, and print defaults.
+The summary sheet combines labeled formulas, styled tables, and a status chart.
 
 ```powershell
 $workbook = New-OfficeExcel -Path $path -NoSave
 
 ExcelSheet -Document $workbook 'Summary' {
         ExcelRow -Row 1 -Values 'Operational Dashboard' -Bold $true
-        ExcelCell -Address 'B4' -Formula 'AVERAGE(Services!C2:C3)' -NumberFormat '0.0'
-        ExcelCell -Address 'B5' -Formula 'SUM(Services!D2:D3)'
+        ExcelCell -Address 'A4' -Value 'Average health'
+        ExcelCell -Address 'A5' -Value 'Total incidents'
+        ExcelCell -Address 'A6' -Value 'Average automation'
+        ExcelCell -Address 'B4' -Formula 'AVERAGE(Services!B2:B3)' -NumberFormat '0.0'
+        ExcelCell -Address 'B5' -Formula 'SUM(Services!C2:C3)'
         ExcelCell -Address 'B6' -Formula 'AVERAGE(Trend!D2:D7)/100' -NumberFormat '0%'
 
         ExcelTable -Data $legend `
@@ -145,7 +159,7 @@ ExcelSheet -Document $workbook 'Summary' {
             -TableStyle 'TableStyleMedium4' `
             -AutoFit
 
-        ExcelChart -Range 'F7:G10' `
+        ExcelChart -TableName 'StatusMix' `
             -Row 7 `
             -Column 9 `
             -Type Doughnut `
@@ -165,7 +179,7 @@ The `Services` sheet is designed for action. It uses a structured table, validat
 
 ```powershell
 ExcelSheet -Document $workbook 'Services' {
-    ExcelTable -Data $services `
+    ExcelTable -Data ($services | Select-Object Service, Health, Incidents, Owner, Status, Evidence) `
         -TableName 'ServiceHealth' `
         -StartRow 1 `
         -StartColumn 1 `
@@ -174,15 +188,15 @@ ExcelSheet -Document $workbook 'Services' {
 
     ExcelFreeze -TopRows 1
     ExcelValidationList -Range 'E2:E50' -Values 'Healthy','Watch','Risk'
-    ExcelConditionalColorScale -Range 'C2:C3' -StartColor '#F8696B' -EndColor '#63BE7B'
-    ExcelConditionalDataBar -Range 'D2:D3' -Color '#5B9BD5'
-    ExcelConditionalIconSet -Range 'C2:C3' -IconSet ThreeTrafficLights1
+    ExcelConditionalColorScale -Range 'B2:B3' -StartColor '#F8696B' -EndColor '#63BE7B'
+    ExcelConditionalDataBar -Range 'C2:C3' -Color '#5B9BD5'
+    ExcelConditionalIconSet -Range 'B2:B3' -IconSet ThreeTrafficLights1
 
-    ExcelChart -Range 'A1:D3' `
+    ExcelChart -Range 'A1:B3' `
         -Row 12 `
         -Column 1 `
         -Type BarClustered `
-        -Title 'Health Score and Incidents'
+        -Title 'Service health score'
 
     ExcelUrlLinksByHeader `
         -Header 'Evidence' `
@@ -198,17 +212,18 @@ This is the sweet spot for PowerShell-generated Excel: repeatable input data, bu
 
 The dashboard also includes trend and owner-summary sheets so the report can answer both "what changed?" and "who needs to act?"
 
-![Trend and owner summary preview showing line chart and grouped owner queue](./images/trend-chart.png)
+![Trend worksheet from the example with monthly values and an availability chart, rendered by desktop Excel](./images/trend-chart.png)
 
 ```powershell
 ExcelSheet -Document $workbook 'Trend' {
     ExcelTable -Data $trend -TableName 'TrendData' -TableStyle 'TableStyleMedium2' -AutoFit
+    foreach ($column in 1..4) { ExcelColumn -Column $column -Width 16 }
 
-    ExcelChart -TableName 'TrendData' `
+    ExcelChart -Range 'A1:B7' `
         -Row 10 `
         -Column 1 `
         -Type Line `
-        -Title 'Availability, Incidents, and Automation' `
+        -Title 'Monthly availability (%)' `
         -PassThru |
         Set-OfficeExcelChartLegend -Position Bottom -PassThru |
         Set-OfficeExcelChartDataLabels -ShowValue $true -Position Top -PassThru |
@@ -222,7 +237,7 @@ ExcelSheet -Document $workbook 'Owner Summary' {
 }
 ```
 
-The owner summary is intentionally table-based because reviewers need a visible action queue. When the analysis itself needs regrouping, use a real PivotTable; the companion `Recipe-Excel-PivotAndSparklines.ps1` demonstrates pivots and row-level trends in a smaller script.
+The trend chart shows availability alone so percentages and incident counts do not share an axis. The owner summary uses a table because reviewers need a visible action queue. When the analysis needs regrouping, use a PivotTable; the companion `Recipe-Excel-PivotAndSparklines.ps1` demonstrates pivots and row-level trends in a smaller script.
 
 ## Hidden Notes And Navigation
 
@@ -373,6 +388,6 @@ Once the pattern is in place, the same commands can generate:
 
 ## Honest Compatibility Notes
 
-This showcase intentionally avoids PivotTables and sparklines for now. The cmdlets exist, but generated packages still need an OfficeIMO desktop-open compatibility pass before they should appear in a flagship workbook.
+The compact example uses ordinary tables for its owner queue. PivotTables and sparklines are separate options when readers need interactive regrouping or compact row-level trends; see the [pivot and sparkline recipe](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Excel/Recipe-Excel-PivotAndSparklines.ps1).
 
-The current dashboard focuses on a clean, useful, visually attractive workbook that validates and opens in desktop Excel.
+Structural read-back checks confirm the workbook contents. Also open representative reports in the spreadsheet application your readers use to check recalculation, chart labels, and print layout. Availability and automation are percentages, while incidents are counts; use separate charts or an explicitly configured secondary axis when comparing changes in those different units.

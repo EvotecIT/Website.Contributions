@@ -35,7 +35,20 @@ That matters because it gives two groups a clean path:
 
 The same core mechanics power both.
 
-![Excel preview showing an HTML table converted into a native worksheet table with headers, filters, values, and extracted link URLs](./images/html-tables-excel-preview.png)
+![The four-row HTML sample in desktop Excel's print view, with typed values and extracted evidence URLs](./images/html-tables-excel-preview.png)
+
+## Before you start
+
+Use PowerShell 7 and install the public module versions used for this article:
+
+```powershell
+Install-Module PSWriteOffice -RequiredVersion 3.0.6 -Scope CurrentUser
+Import-Module PSWriteOffice -RequiredVersion 3.0.6
+Install-Module PSParseHTML -RequiredVersion 3.0.1 -Scope CurrentUser
+Import-Module PSParseHTML -RequiredVersion 3.0.1
+```
+
+Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
 
 ## The Pieces
 
@@ -79,7 +92,27 @@ This article uses PSWriteOffice because the companion examples continue into wor
 
 ## For C# Developers
 
-In C#, use HtmlTinkerX to parse the HTML table and convert it into a `DataTable`. Then let OfficeIMO.Excel create the workbook.
+Save this complete sample as `service-status.html` in your working directory. Both language examples below use it. The links are illustrative evidence URLs; replace them with your own service pages.
+
+```html
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Service status</title></head>
+<body>
+<table id="services">
+  <thead><tr><th>Service</th><th>Health</th><th>Incidents</th><th>Owner</th><th>Evidence</th></tr></thead>
+  <tbody>
+    <tr><td>Identity Sync</td><td>98</td><td>1</td><td>Platform</td><td><a href="https://example.com/identity">Details</a></td></tr>
+    <tr><td>Remote Access</td><td>76</td><td>7</td><td>Security</td><td><a href="https://example.com/access">Details</a></td></tr>
+    <tr><td>Backup</td><td>92</td><td>2</td><td>Operations</td><td><a href="https://example.com/backup">Details</a></td></tr>
+    <tr><td>Monitoring</td><td>95</td><td>1</td><td>Operations</td><td><a href="https://example.com/monitoring">Details</a></td></tr>
+  </tbody>
+</table>
+</body>
+</html>
+```
+
+In a .NET console project, add `HtmlTinkerX` 3.0.1 and `OfficeIMO.Excel` 3.4.2 with `dotnet add package`. Use HtmlTinkerX to parse the HTML table and convert it into a `DataTable`, then let OfficeIMO.Excel create the workbook.
 
 ```csharp
 using HtmlTinkerX;
@@ -146,9 +179,6 @@ That is the C# story: use .NET data shapes between libraries. No PowerShell requ
 In PowerShell, the same idea becomes a pipeline.
 
 ```powershell
-Import-Module PSParseHTML
-Import-Module PSWriteOffice
-
 ConvertFrom-HtmlTable `
     -Path .\service-status.html `
     -TableId 'services' `
@@ -190,6 +220,14 @@ Once the table is in Excel, PSWriteOffice can continue working with the workbook
 
 ```powershell
 $workbook = Get-OfficeExcel -Path .\ServiceStatus.xlsx
+ExcelSheet -Document $workbook 'Services' {
+    ExcelColumn -ColumnName 'A' -Width 22
+    ExcelColumn -ColumnName 'B' -Width 12
+    ExcelColumn -ColumnName 'C' -Width 14
+    ExcelColumn -ColumnName 'D' -Width 18
+    ExcelColumn -ColumnName 'E' -Width 14
+    ExcelColumn -ColumnName 'F' -Width 45
+}
 Add-OfficeExcelTableOfContents `
     -Document $workbook `
     -SheetName 'Index' `
@@ -198,11 +236,11 @@ Add-OfficeExcelTableOfContents `
 Add-OfficeExcelChart `
     -Document $workbook `
     -Sheet 'Services' `
-    -Range 'A1:D5' `
+    -Range 'A1:B5' `
     -Row 8 `
     -Column 1 `
     -Type BarClustered `
-    -Title 'Health and incidents'
+    -Title 'Service health score'
 
 $workbook | Save-OfficeExcel
 $workbook | Close-OfficeExcel

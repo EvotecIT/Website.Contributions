@@ -29,7 +29,14 @@ The useful first step is not “convert everything.” It is to identify the for
 
 [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) provides the PowerShell commands in this workflow. [OfficeIMO](https://github.com/EvotecIT/OfficeIMO) owns the parsers, document models, conversion reports, package policies, and OCR contracts underneath them. That split keeps the script readable while the result still carries structured evidence.
 
-> This draft targets the upcoming PSWriteOffice build backed by OfficeIMO 3.4. Keep it as a draft until those packages and commands are released together.
+The commands below are available in [PSWriteOffice 3.0.6](https://www.powershellgallery.com/packages/PSWriteOffice/3.0.6). Use PowerShell 7 and install the module before starting:
+
+```powershell
+Install-Module PSWriteOffice -RequiredVersion 3.0.6 -Scope CurrentUser
+Import-Module PSWriteOffice -RequiredVersion 3.0.6
+```
+
+The paths are examples: supply representative source files and create the review output directory first. OCR also needs a local Tesseract runtime and the requested English and Polish language data. Cryptographic provenance verification requires the optional `c2patool` executable shown later.
 
 ## Start with an inventory
 
@@ -115,7 +122,7 @@ $provenance.TextIntegrity
 $provenance.Verification
 ```
 
-The default path is local and inspect-first. If your environment has an approved `c2patool` installation, opt into that verifier explicitly:
+The default path inspects local structure. `Verification` can be null when no verifier was requested; finding a manifest is separate from verifying its signature. If your environment has an approved `c2patool` installation, opt into that verifier explicitly:
 
 ```powershell
 $provenance = Get-OfficeProvenance `

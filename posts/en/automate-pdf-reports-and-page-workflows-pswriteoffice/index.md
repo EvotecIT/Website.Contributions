@@ -25,6 +25,17 @@ PSWriteOffice exposes both through the OfficeIMO PDF engine. The composition DSL
 
 The distinction matters because a flowing paragraph should not require coordinates, while a review stamp at an exact page position should not pretend to be ordinary document content.
 
+## Before you start
+
+Use PowerShell 7 and install the public module versions used for this article:
+
+```powershell
+Install-Module PSWriteOffice -RequiredVersion 3.0.6 -Scope CurrentUser
+Import-Module PSWriteOffice -RequiredVersion 3.0.6
+```
+
+Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
+
 ## Compose A Report In Document Flow
 
 Start with the DSL when the script owns the report. The page layout engine places flowing content and handles page breaks as the report grows.
@@ -102,6 +113,8 @@ PdfNew -Path '.\Change-Request.pdf' {
     PdfFormField -Name Decision -Type Choice -Options Approve,Reject,Defer -Value Defer -Width 220
 }
 ```
+
+![Owner and Decision fields rendered from the Change-Request PDF example](./images/change-request-form.png)
 
 XFDF keeps the field values separate from the document when another system needs to exchange or archive them:
 
