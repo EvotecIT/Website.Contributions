@@ -122,7 +122,7 @@ $sqliteConnectionString = New-DbaXConnectionString `
 
 If you want a workbook that people can open, filter, review, and send back, query the database and export the result as an Excel table:
 
-The editable round trip assumes `dbo.WorkQueue` has an `Id` primary key and a `RowVersion` column of SQL Server's `rowversion` type. Export that concurrency token as hexadecimal text in `ExpectedVersion`, and keep it unchanged while editing `Name` and `Status`. A rowversion changes on every database update, so it detects changes without relying on timestamp precision surviving an Excel round trip.
+The editable round trip assumes `dbo.WorkQueue` has an externally assigned, non-`IDENTITY` `Id` primary key and a `RowVersion` column of SQL Server's `rowversion` type. New workbook rows must have unique IDs assigned by your application. Tables with database-generated identity keys need a separate insertion and key-mapping workflow. Export the concurrency token as hexadecimal text in `ExpectedVersion`, and keep it unchanged while editing `Name` and `Status`. A rowversion changes on every database update, so it detects changes without relying on timestamp precision surviving an Excel round trip. The import updates only rows whose editable values changed, preserving `ModifiedUtc` and the token for unchanged rows.
 
 ```powershell
 $databaseServer = 'sql01'
@@ -180,7 +180,7 @@ For a pass-through SQL Server export, the owned `IDataReader` above keeps the ro
 
 ## Import Excel rows to a database table
 
-When the first export comes back from review, import it as a `DataTable` and write it to a staging table. Existing rows retain their `ExpectedVersion`; an intentionally new row has a new `Id` and an empty `ExpectedVersion`:
+When the first export comes back from review, import it as a `DataTable` and write it to a staging table. Existing rows retain their `ExpectedVersion`; an intentionally new row has a new `Id` and an empty `ExpectedVersion`. This example treats blank `Name` and `Status` cells as SQL `NULL`; adapt that rule if your schema requires non-null values or distinguishes empty strings from nulls:
 
 ```powershell
 $databaseServer = 'sql01'
@@ -205,6 +205,11 @@ foreach ($column in 'Id', 'Name', 'Status', 'ExpectedVersion') {
     }
 }
 foreach ($row in $table.Rows) {
+    foreach ($column in 'Name', 'Status') {
+        if ([string]::IsNullOrEmpty([string]$row[$column])) {
+            $row[$column] = [DBNull]::Value
+        }
+    }
     $token = [string]$row.ExpectedVersion
     if ($token.Length -gt 0 -and $token -notmatch '^0x[0-9a-fA-F]{16}$') {
         throw "WorkQueue ID '$($row.Id)' has an invalid ExpectedVersion. Re-export it before reviewing."
@@ -256,7 +261,12 @@ BEGIN TRY
         Status = source.Status,
         ModifiedUtc = SYSUTCDATETIME()
     FROM dbo.WorkQueue AS target
-    JOIN $stageTable AS source ON target.Id = source.Id;
+    JOIN $stageTable AS source ON target.Id = source.Id
+    WHERE EXISTS (
+        SELECT CONVERT(varbinary(max), CONVERT(nvarchar(max), target.Name)), CONVERT(varbinary(max), CONVERT(nvarchar(max), target.Status))
+        EXCEPT
+        SELECT CONVERT(varbinary(max), CONVERT(nvarchar(max), source.Name)), CONVERT(varbinary(max), CONVERT(nvarchar(max), source.Status))
+    );
 
     INSERT dbo.WorkQueue (Id, Name, Status, ModifiedUtc)
     SELECT source.Id, source.Name, source.Status, SYSUTCDATETIME()
@@ -286,7 +296,7 @@ END CATCH;
 
 The important detail is `-AsDataTable`. That gives DbaClientX a tabular shape it can send to provider-native bulk insert APIs. The bulk writer uses the generated connection string; the merge and cleanup commands use the same server, database, and certificate-trust decision, and DbaClientX enables SQL Server encryption for those direct non-query connections. If the workflow uses a database credential, pass the same `$databaseCredential` to both `New-DbaXConnectionString` and `Invoke-DbaXNonQuery`.
 
-A unique staging table isolates retries and concurrent imports; the `finally` block removes it even when validation or import fails. The transaction locks the relevant keys while comparing version tokens and applying changes. A changed or deleted source row, a newly occupied ID, or a retry of an already-applied workbook rejects the whole batch. Re-export and resolve those conflicts instead of overwriting newer values. Rows omitted from the workbook are left alone; this example does not perform deletions. Validate types, required values, row counts, duplicate keys, and business rules before changing production data.
+A unique staging table isolates retries and concurrent imports; the `finally` block removes it even when validation or import fails. The transaction locks the relevant keys while comparing version tokens and applying changes. A changed or deleted source row, a newly occupied ID, or a retry of a workbook that already changed or inserted rows rejects the whole batch. Replaying a workbook that made no changes is a harmless no-op. Re-export and resolve those conflicts instead of overwriting newer values. Rows omitted from the workbook are left alone; this example does not perform deletions. Validate types, required values, row counts, duplicate keys, and business rules before changing production data.
 
 ## Use the same ownership boundary for CSV
 
