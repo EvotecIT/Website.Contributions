@@ -51,6 +51,16 @@ Import-Module DbaClientX -RequiredVersion 1.0.8
 
 Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
 
+The credential examples also require Microsoft.PowerShell.SecretManagement and a registered vault provider. The final email example additionally uses Mailozaurr:
+
+```powershell
+Install-Module Microsoft.PowerShell.SecretManagement -Scope CurrentUser
+Install-Module Mailozaurr -Scope CurrentUser
+Import-Module Microsoft.PowerShell.SecretManagement
+```
+
+Install and register the vault provider used by your environment, select its default vault, and store `Operations-Database-Credential` and `Reporting-Smtp-Credential` as `PSCredential` secrets before running those sections. `Get-SecretVault` lists registered vaults; `Test-SecretVault -Name '<your-vault-name>'` verifies access. Installing SecretManagement alone does not create a vault or populate either secret. Replace the example database, SMTP server, sender, and recipients with your own settings.
+
 ## How this fits with dbatools and ImportExcel
 
 This is not an argument that existing scripts need to move.
@@ -112,10 +122,9 @@ $sqliteConnectionString = New-DbaXConnectionString `
 
 If you want a workbook that people can open, filter, review, and send back, query the database and export the result as an Excel table:
 
-```powershell
-Import-Module DbaClientX
-Import-Module PSWriteOffice
+The editable round trip assumes `dbo.WorkQueue` has an `Id` primary key and a `RowVersion` column of SQL Server's `rowversion` type. Export that concurrency token as hexadecimal text in `ExpectedVersion`, and keep it unchanged while editing `Name` and `Status`. A rowversion changes on every database update, so it detects changes without relying on timestamp precision surviving an Excel round trip.
 
+```powershell
 $databaseServer = 'sql01'
 $databaseName = 'Operations'
 $trustServerCertificate = $false
@@ -131,7 +140,7 @@ $reader = Invoke-DbaXQuery `
     -Server $databaseServer `
     -Database $databaseName `
     -TrustServerCertificate:$trustServerCertificate `
-    -Query 'SELECT Id, Name, Status, ModifiedUtc FROM dbo.WorkQueue' `
+    -Query 'SELECT Id, Name, Status, ModifiedUtc, CONVERT(varchar(18), CAST(RowVersion AS binary(8)), 1) AS ExpectedVersion FROM dbo.WorkQueue' `
     -AsDataReader
 
 try {
@@ -171,12 +180,9 @@ For a pass-through SQL Server export, the owned `IDataReader` above keeps the ro
 
 ## Import Excel rows to a database table
 
-When the workbook comes back from review, import it as a `DataTable` and write it to a staging table:
+When the first export comes back from review, import it as a `DataTable` and write it to a staging table. Existing rows retain their `ExpectedVersion`; an intentionally new row has a new `Id` and an empty `ExpectedVersion`:
 
 ```powershell
-Import-Module DbaClientX
-Import-Module PSWriteOffice
-
 $databaseServer = 'sql01'
 $databaseName = 'Operations'
 $trustServerCertificate = $false
@@ -193,6 +199,18 @@ $table = Import-OfficeExcel `
     -WorksheetName 'Work Queue' `
     -AsDataTable
 
+foreach ($column in 'Id', 'Name', 'Status', 'ExpectedVersion') {
+    if (-not $table.Columns.Contains($column)) {
+        throw "The reviewed workbook is missing the required '$column' column."
+    }
+}
+foreach ($row in $table.Rows) {
+    $token = [string]$row.ExpectedVersion
+    if ($token.Length -gt 0 -and $token -notmatch '^0x[0-9a-fA-F]{16}$') {
+        throw "WorkQueue ID '$($row.Id)' has an invalid ExpectedVersion. Re-export it before reviewing."
+    }
+}
+
 $duplicateIds = @($table.Rows | Group-Object Id | Where-Object Count -gt 1)
 if ($duplicateIds.Count -gt 0) {
     throw "The workbook contains duplicate WorkQueue IDs: $($duplicateIds.Name -join ', ')."
@@ -207,22 +225,50 @@ try {
         -DestinationTable $stageTable `
         -AutoCreateTable `
         -BatchSize 5000 `
+        -ErrorAction Stop `
         -PassThru
 
     $mergeResult = Invoke-DbaXNonQuery `
         -Server $databaseServer `
         -Database $databaseName `
         -TrustServerCertificate:$trustServerCertificate `
+        -ErrorAction Stop `
         -Query @"
-MERGE dbo.WorkQueue WITH (HOLDLOCK) AS target
-USING $stageTable AS source
-    ON target.Id = source.Id
-WHEN MATCHED THEN UPDATE SET
-    target.Name = source.Name,
-    target.Status = source.Status,
-    target.ModifiedUtc = SYSUTCDATETIME()
-WHEN NOT MATCHED BY TARGET THEN INSERT (Id, Name, Status, ModifiedUtc)
-    VALUES (source.Id, source.Name, source.Status, SYSUTCDATETIME());
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    IF EXISTS (
+        SELECT 1
+        FROM $stageTable AS source
+        LEFT JOIN dbo.WorkQueue AS target WITH (UPDLOCK, HOLDLOCK)
+            ON target.Id = source.Id
+        WHERE (
+            NULLIF(source.ExpectedVersion, '') IS NOT NULL
+            AND (target.Id IS NULL
+                OR target.RowVersion <> CONVERT(binary(8), source.ExpectedVersion, 1))
+        ) OR (NULLIF(source.ExpectedVersion, '') IS NULL AND target.Id IS NOT NULL)
+    )
+        THROW 51000, 'The workbook conflicts with current WorkQueue rows. Re-export and resolve the conflicts.', 1;
+
+    UPDATE target
+    SET Name = source.Name,
+        Status = source.Status,
+        ModifiedUtc = SYSUTCDATETIME()
+    FROM dbo.WorkQueue AS target
+    JOIN $stageTable AS source ON target.Id = source.Id;
+
+    INSERT dbo.WorkQueue (Id, Name, Status, ModifiedUtc)
+    SELECT source.Id, source.Name, source.Status, SYSUTCDATETIME()
+    FROM $stageTable AS source
+    WHERE NOT EXISTS (SELECT 1 FROM dbo.WorkQueue AS target WHERE target.Id = source.Id);
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
 "@
 
     [pscustomobject]@{
@@ -240,7 +286,7 @@ WHEN NOT MATCHED BY TARGET THEN INSERT (Id, Name, Status, ModifiedUtc)
 
 The important detail is `-AsDataTable`. That gives DbaClientX a tabular shape it can send to provider-native bulk insert APIs. The bulk writer uses the generated connection string; the merge and cleanup commands use the same server, database, and certificate-trust decision, and DbaClientX enables SQL Server encryption for those direct non-query connections. If the workflow uses a database credential, pass the same `$databaseCredential` to both `New-DbaXConnectionString` and `Invoke-DbaXNonQuery`.
 
-A unique staging table isolates retries and concurrent imports; the `finally` block removes it even when validation or merge fails. Validate types, required columns, row counts, duplicate keys, and business rules before changing production data.
+A unique staging table isolates retries and concurrent imports; the `finally` block removes it even when validation or import fails. The transaction locks the relevant keys while comparing version tokens and applying changes. A changed or deleted source row, a newly occupied ID, or a retry of an already-applied workbook rejects the whole batch. Re-export and resolve those conflicts instead of overwriting newer values. Rows omitted from the workbook are left alone; this example does not perform deletions. Validate types, required values, row counts, duplicate keys, and business rules before changing production data.
 
 ## Use the same ownership boundary for CSV
 
@@ -387,7 +433,7 @@ The commands still look like normal PowerShell, but the data stays in a form tha
 
 We built these paths while trying to shorten our own reporting jobs, but the useful question is not which module wins in the abstract. It is whether the exact job is equivalent, the output is correct, and the result repeats on the machine that will run it.
 
-The [DbaClientX repository includes PowerForge suites](https://github.com/EvotecIT/DbaClientX#sql-server-benchmarks) for direct SQL Server reads and writes. In the current committed 25,000-row snapshot, the comparable `DataTable` lanes reported these medians:
+The [DbaClientX benchmark snapshot](https://github.com/EvotecIT/DbaClientX/blob/fa7a2a0ec3bb79e19cb2ba9838e556706cf8be1c/README.md#sql-server-benchmarks) includes PowerForge suites for direct SQL Server reads and writes. In that committed 25,000-row snapshot, the comparable `DataTable` lanes reported these medians:
 
 | Operation | DbaClientX | dbatools |
 | --- | ---: | ---: |
@@ -405,25 +451,23 @@ A separate dated run on 10 August 2026 measured the complete 25,000-row SQL Serv
 
 The two columns are deliberate. This workstation uses an AMD Ryzen 9 9950X3D2 with two performance domains, so the full comparison was repeated with one 16-logical-processor affinity mask at a time. The run used PowerShell 7.6.4, SQL Server 17.0.1125.2, High process priority, five warmups, fifteen rotated measured iterations, and no removed outliers. All 60 measured round trips passed validation.
 
-The gap is meaningful for that source-linked fixture; it is not a promise that every workbook, database, CPU, or module version will produce the same ratio. Read the [SQL Server benchmark notes](https://github.com/EvotecIT/DbaClientX/blob/master/docs/sqlserver-benchmark-notes.md), keep both processor domains visible on heterogeneous machines, and rerun the matrix with the row shape and workbook features used in production.
+The gap is meaningful for that source-linked fixture; it is not a promise that every workbook, database, CPU, or module version will produce the same ratio. Read the [SQL Server benchmark notes at the measured revision](https://github.com/EvotecIT/DbaClientX/blob/fa7a2a0ec3bb79e19cb2ba9838e556706cf8be1c/docs/sqlserver-benchmark-notes.md), keep both processor domains visible on heterogeneous machines, and rerun the matrix with the row shape and workbook features used in production.
 
 ## Publish The Review Pack
 
 A database export often needs two forms: an editable workbook for analysts and a fixed-layout copy for approval or archival. PSWriteOffice can create the workbook and explicitly export it to PDF; Mailozaurr can then deliver both without making the data-access script own SMTP:
 
 ```powershell
-Import-Module DbaClientX
-Import-Module PSWriteOffice
 Import-Module Mailozaurr
 
-$outputDirectory = (New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'Output') -Force).FullName
+$outputDirectory = (New-Item -ItemType Directory -Path (Join-Path (Get-Location).Path 'Output') -Force).FullName
 $workbookPath = Join-Path $outputDirectory 'WorkQueue.xlsx'
 $pdfPath = Join-Path $outputDirectory 'WorkQueue.pdf'
 
 $rows = Invoke-DbaXQuery `
     -Server 'sql01' `
     -Database 'Operations' `
-    -Query 'SELECT Id, Name, Status, ModifiedUtc FROM dbo.WorkQueue' `
+    -Query 'SELECT Id, Name, Status, ModifiedUtc, CONVERT(varchar(18), CAST(RowVersion AS binary(8)), 1) AS ExpectedVersion FROM dbo.WorkQueue' `
     -ReturnType DataTable
 
 Export-OfficeExcel `
