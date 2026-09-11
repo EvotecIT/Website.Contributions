@@ -33,6 +33,17 @@ It is useful for:
 - support desktops
 - environments where machine identity must be visible at a glance
 
+## Before you start
+
+Use PowerShell 7 and install the public module versions used for this article:
+
+```powershell
+Install-Module PowerBGInfo -RequiredVersion 2.0.3 -Scope CurrentUser
+Import-Module PowerBGInfo -RequiredVersion 2.0.3
+```
+
+Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
+
 ## Put the right facts on the screen
 
 Built-in values cover common machine and user facts such as hostname, operating system, CPU, memory, BIOS, disks, network addresses, domain, and user identity. Custom values can come from PowerShell, CIM, the registry, Active Directory, an API, or an RMM tool.
@@ -55,7 +66,8 @@ Good candidates include:
 Long inline scripts are awkward to carry through scheduled tasks, imaging, and RMM policies. PowerBGInfo can export a reviewed configuration to JSON and execute it separately.
 
 ```powershell
-$configPath = 'C:\ProgramData\PowerBGInfo\workstation.json'
+$configurationDirectory = (New-Item -ItemType Directory -Path '.\BGInfoPreview' -Force).FullName
+$configPath = Join-Path $configurationDirectory 'workstation.json'
 
 New-BGInfo {
     New-BGInfoValue -BuiltinValue HostName -Name 'Machine'
@@ -64,7 +76,8 @@ New-BGInfo {
     New-BGInfoValue -Name 'Support' -Value 'helpdesk@contoso.com'
 } -MonitorIndex 0 `
     -Target File `
-    -ConfigurationDirectory 'C:\ProgramData\PowerBGInfo' `
+    -ConfigurationDirectory $configurationDirectory `
+    -OutputFileName 'workstation-preview.png' `
     -JsonPath $configPath `
     -ExportOnly
 
@@ -117,7 +130,7 @@ New-BGInfoChart `
     -OffsetY 20
 ```
 
-![A PowerBGInfo background with compact operational charts](./images/operational-charts.webp)
+Place this chart declaration inside the `New-BGInfo { ... }` configuration block above. CPU history accumulates across refreshes; the first render does not contain sixty historical samples. Keep enough vertical space between overlays and inspect the file preview at the actual target resolution.
 
 ## Topology can provide immediate context
 
