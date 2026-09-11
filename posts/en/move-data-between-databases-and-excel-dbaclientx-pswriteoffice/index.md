@@ -26,7 +26,7 @@ PowerShell is often the glue between systems that were never designed to talk to
 
 [DbaClientX](https://github.com/EvotecIT/DbaClientX) is a provider-neutral database client for PowerShell and .NET. It can query SQL Server, PostgreSQL, MySQL, Oracle, and SQLite, and it exposes provider-native bulk insert paths for tabular data.
 
-[PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) creates and reads Office files from PowerShell. For this workflow, the important parts are Excel and CSV: export rows into real `.xlsx` workbooks or bounded-delimiter files, import reviewed data as PowerShell objects, `DataTable`, or `IDataReader`, and do it without requiring Microsoft Excel on the machine.
+[PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) creates and reads Office files from PowerShell. For this workflow, the important parts are Excel and CSV: export rows into real `.xlsx` workbooks or delimited text files, import reviewed data as PowerShell objects, `DataTable`, or `IDataReader`, and do it without requiring Microsoft Excel on the machine.
 
 [OfficeIMO](https://github.com/EvotecIT/OfficeIMO) is the engine underneath PSWriteOffice. It owns the workbook implementation so the PowerShell commands can stay concise while the same workflow scales from a quick export to explicit workbook composition.
 
@@ -37,6 +37,19 @@ The result is a practical data movement story:
 - You want a reviewed workbook back in a database? Import with PSWriteOffice, bulk write with DbaClientX.
 - You want to avoid materializing every row as a PowerShell object? Hand an `IDataReader` directly from the database client to the workbook writer.
 - You want the flexible path? Use normal PowerShell objects and let the commands convert them.
+
+## Before you start
+
+Use PowerShell 7 and install the public module versions used for this article:
+
+```powershell
+Install-Module PSWriteOffice -RequiredVersion 3.0.6 -Scope CurrentUser
+Import-Module PSWriteOffice -RequiredVersion 3.0.6
+Install-Module DbaClientX -RequiredVersion 1.0.8 -Scope CurrentUser
+Import-Module DbaClientX -RequiredVersion 1.0.8
+```
+
+Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
 
 ## How this fits with dbatools and ImportExcel
 
@@ -331,7 +344,7 @@ $audit = Import-OfficeExcel `
 
 $audit | Write-DbaXTableData `
     -Provider SQLite `
-    -ConnectionString 'Data Source=C:\Data\audit.db' `
+    -ConnectionString $sqliteConnectionString `
     -DestinationTable 'audit_events' `
     -BatchSize 1000
 ```
@@ -340,7 +353,7 @@ For SQL Server, PostgreSQL, MySQL, Oracle, and SQLite, the workflow stays the sa
 
 ## Pick the shape that fits the job
 
-There are two practical ways to move data.
+Choose between PowerShell objects, an in-memory `DataTable`, and a streaming `IDataReader` according to the transformations and buffering the job needs.
 
 Use the flexible path when the dataset is small or you need PowerShell transformations:
 
