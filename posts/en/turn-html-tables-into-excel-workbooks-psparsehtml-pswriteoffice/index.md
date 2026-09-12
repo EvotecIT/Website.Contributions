@@ -42,8 +42,8 @@ The same core mechanics power both.
 Use PowerShell 7 and install the public module versions used for this article:
 
 ```powershell
-Install-Module PSWriteOffice -RequiredVersion 3.0.6 -Scope CurrentUser
-Import-Module PSWriteOffice -RequiredVersion 3.0.6
+Install-Module PSWriteOffice -RequiredVersion 3.0.7 -Scope CurrentUser
+Import-Module PSWriteOffice -RequiredVersion 3.0.7
 Install-Module PSParseHTML -RequiredVersion 3.0.1 -Scope CurrentUser
 Import-Module PSParseHTML -RequiredVersion 3.0.1
 ```
@@ -112,7 +112,7 @@ Save this complete sample as `service-status.html` in your working directory. Bo
 </html>
 ```
 
-In a .NET console project, add `HtmlTinkerX` 3.0.1 and `OfficeIMO.Excel` 3.4.2 with `dotnet add package`. Use HtmlTinkerX to parse the HTML table and convert it into a `DataTable`, then let OfficeIMO.Excel create the workbook.
+In a .NET console project, add `HtmlTinkerX` 3.0.1 and `OfficeIMO.Excel` 3.4.3 with `dotnet add package`. Use HtmlTinkerX to parse the HTML table and convert it into a `DataTable`, then let OfficeIMO.Excel create the workbook.
 
 ```csharp
 using HtmlTinkerX;

@@ -30,8 +30,8 @@ This showcase builds an editable executive service-health report from PowerShell
 Use PowerShell 7 and install the public module versions used for this article:
 
 ```powershell
-Install-Module PSWriteOffice -RequiredVersion 3.0.6 -Scope CurrentUser
-Import-Module PSWriteOffice -RequiredVersion 3.0.6
+Install-Module PSWriteOffice -RequiredVersion 3.0.7 -Scope CurrentUser
+Import-Module PSWriteOffice -RequiredVersion 3.0.7
 ```
 
 Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
