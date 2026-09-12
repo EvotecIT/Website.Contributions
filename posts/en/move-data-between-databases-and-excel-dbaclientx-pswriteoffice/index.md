@@ -43,8 +43,8 @@ The result is a practical data movement story:
 Use PowerShell 7 and install the public module versions used for this article:
 
 ```powershell
-Install-Module PSWriteOffice -RequiredVersion 3.0.6 -Scope CurrentUser
-Import-Module PSWriteOffice -RequiredVersion 3.0.6
+Install-Module PSWriteOffice -RequiredVersion 3.0.7 -Scope CurrentUser
+Import-Module PSWriteOffice -RequiredVersion 3.0.7
 Install-Module DbaClientX -RequiredVersion 1.0.8 -Scope CurrentUser
 Import-Module DbaClientX -RequiredVersion 1.0.8
 ```
