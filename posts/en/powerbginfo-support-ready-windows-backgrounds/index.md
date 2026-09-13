@@ -35,11 +35,11 @@ It is useful for:
 
 ## Before you start
 
-Use PowerShell 7 and install the public module versions used for this article:
+Use PowerShell 7 and install the current public modules used for this article:
 
 ```powershell
-Install-Module PowerBGInfo -RequiredVersion 2.0.3 -Scope CurrentUser
-Import-Module PowerBGInfo -RequiredVersion 2.0.3
+Install-Module PowerBGInfo -Scope CurrentUser
+Import-Module PowerBGInfo
 ```
 
 Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.

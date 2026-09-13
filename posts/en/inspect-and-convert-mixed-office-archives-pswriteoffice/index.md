@@ -32,8 +32,8 @@ The useful first step is not “convert everything.” It is to identify the for
 The commands below are available in [PSWriteOffice 3.0.7](https://www.powershellgallery.com/packages/PSWriteOffice/3.0.7). Use PowerShell 7 and install the module before starting:
 
 ```powershell
-Install-Module PSWriteOffice -RequiredVersion 3.0.7 -Scope CurrentUser
-Import-Module PSWriteOffice -RequiredVersion 3.0.7
+Install-Module PSWriteOffice -Scope CurrentUser
+Import-Module PSWriteOffice
 ```
 
 The paths are examples: supply representative source files and create the review output directory first. OCR also needs a local Tesseract runtime and the requested English and Polish language data. Cryptographic provenance verification requires the optional `c2patool` executable shown later.
