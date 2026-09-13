@@ -32,7 +32,7 @@ The useful first step is not “convert everything.” It is to identify the for
 The commands below are available in [PSWriteOffice 3.0.7](https://www.powershellgallery.com/packages/PSWriteOffice/3.0.7). Use PowerShell 7 and install the module before starting:
 
 ```powershell
-Install-Module PSWriteOffice -Scope CurrentUser
+Install-Module PSWriteOffice -Scope CurrentUser -Force
 Import-Module PSWriteOffice
 ```
 

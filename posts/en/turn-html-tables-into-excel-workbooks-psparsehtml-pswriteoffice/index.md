@@ -42,9 +42,9 @@ The same core mechanics power both.
 Use PowerShell 7 and install the current public modules used for this article:
 
 ```powershell
-Install-Module PSWriteOffice -Scope CurrentUser
+Install-Module PSWriteOffice -Scope CurrentUser -Force
 Import-Module PSWriteOffice
-Install-Module PSParseHTML -Scope CurrentUser
+Install-Module PSParseHTML -Scope CurrentUser -Force
 Import-Module PSParseHTML
 ```
 

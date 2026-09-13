@@ -38,7 +38,7 @@ It is useful for:
 Use PowerShell 7 and install the current public modules used for this article:
 
 ```powershell
-Install-Module PowerBGInfo -Scope CurrentUser
+Install-Module PowerBGInfo -Scope CurrentUser -Force
 Import-Module PowerBGInfo
 ```
 

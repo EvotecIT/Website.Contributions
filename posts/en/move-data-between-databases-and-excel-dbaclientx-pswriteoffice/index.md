@@ -43,9 +43,9 @@ The result is a practical data movement story:
 Use PowerShell 7 and install the current public modules used for this article:
 
 ```powershell
-Install-Module PSWriteOffice -Scope CurrentUser
+Install-Module PSWriteOffice -Scope CurrentUser -Force
 Import-Module PSWriteOffice
-Install-Module DbaClientX -Scope CurrentUser
+Install-Module DbaClientX -Scope CurrentUser -Force
 Import-Module DbaClientX
 ```
 

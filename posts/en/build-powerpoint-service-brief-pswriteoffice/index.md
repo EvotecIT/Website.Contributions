@@ -32,7 +32,7 @@ This showcase uses a technical delivery story about building the PSWriteOffice e
 Use PowerShell 7 and install the current public modules used for this article:
 
 ```powershell
-Install-Module PSWriteOffice -Scope CurrentUser
+Install-Module PSWriteOffice -Scope CurrentUser -Force
 Import-Module PSWriteOffice
 ```
 

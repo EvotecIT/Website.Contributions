@@ -36,7 +36,7 @@ The useful part is repeatability. Inputs, transformations, dimensions, output fo
 Use PowerShell 7 and install the current public modules used for this article:
 
 ```powershell
-Install-Module ImagePlayground -Scope CurrentUser
+Install-Module ImagePlayground -Scope CurrentUser -Force
 Import-Module ImagePlayground
 ```
 
