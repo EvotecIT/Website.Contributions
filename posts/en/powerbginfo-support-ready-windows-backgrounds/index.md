@@ -1,6 +1,6 @@
 ---
 title: "PowerBGInfo 2.x: support-ready Windows backgrounds from PowerShell"
-description: "Turn machine identity, operational context, charts, and topology into repeatable Windows desktop and logon backgrounds."
+description: "Build and deploy Windows backgrounds that show the machine details a user or support technician actually needs."
 date: "2026-08-07"
 language: "en"
 authors:
@@ -20,11 +20,11 @@ image_alt: "A support-ready desktop monitor showing machine information, health 
 draft: true
 ---
 
-The original idea behind BGInfo is still useful: put the machine facts a technician needs directly on the desktop. The operating environment around that idea has changed. Devices have several monitors, wallpapers may rotate as slideshows, support data comes from more than the local registry, and the result often needs to be generated and deployed as policy rather than configured by hand.
+I have always liked the basic BGInfo idea: show the machine details where the user or technician can see them immediately. The awkward part starts when the device has two monitors, Windows is rotating wallpapers, the support details come from several systems, and the finished background has to be deployed through policy.
 
-[PowerBGInfo](https://github.com/EvotecIT/PowerBGInfo) is the PowerShell approach to that problem. The 2.x line is no longer just a few text values painted over one wallpaper. It can build support-ready desktop and logon backgrounds from PowerShell-authored configuration, with controlled placement, deployment targets, reusable JSON, charts, topology, and structured visual canvases.
+[PowerBGInfo](https://github.com/EvotecIT/PowerBGInfo) is my PowerShell take on that job. Version 2.x can build desktop and logon backgrounds from a script or reusable JSON configuration. It controls placement and deployment, and it can include charts, topology, and other composed visuals when plain text is not enough.
 
-It is useful for:
+I mainly see it fitting these machines:
 
 - shared admin workstations
 - lab and classroom machines
@@ -42,15 +42,13 @@ Install-Module PowerBGInfo -Scope CurrentUser -Force
 Import-Module PowerBGInfo
 ```
 
-Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
+Run the examples from a folder where you can write the generated files, and replace the sample values with details that make sense in your environment.
 
 ## Put the right facts on the screen
 
-Built-in values cover common machine and user facts such as hostname, operating system, CPU, memory, BIOS, disks, network addresses, domain, and user identity. Custom values can come from PowerShell, CIM, the registry, Active Directory, an API, or an RMM tool.
+Built-in values cover the usual machine and user facts: hostname, operating system, CPU, memory, BIOS, disks, network addresses, domain, and user identity. Custom values can come from PowerShell, CIM, the registry, Active Directory, an API, or an RMM tool.
 
-The result is still a wallpaper, so restraint matters. A technician should be able to answer the immediate question without reading a diagnostic report on the desktop.
-
-Good candidates include:
+It is tempting to put everything on the wallpaper. I try to keep it to the questions someone asks during the first minute of a support call:
 
 - which machine and user am I looking at?
 - which environment or role does it belong to?
@@ -63,7 +61,7 @@ Good candidates include:
 
 ## Author once, deploy from JSON
 
-Long inline scripts are awkward to carry through scheduled tasks, imaging, and RMM policies. PowerBGInfo can export a reviewed configuration to JSON and execute it separately.
+Long layout scripts are awkward to paste into scheduled tasks, imaging steps, and RMM policies. I prefer to author and preview the layout once, export it to JSON, and let deployment run that reviewed configuration.
 
 ```powershell
 $configurationDirectory = (New-Item -ItemType Directory -Path '.\BGInfoPreview' -Force).FullName
@@ -84,30 +82,30 @@ New-BGInfo {
 Invoke-BGInfo -Path $configPath
 ```
 
-This separates layout authoring from execution. The JSON can be reviewed and versioned beside the deployment policy, while the scheduled task or RMM action only needs to invoke the known configuration.
+The JSON can be reviewed and versioned beside the deployment policy. The scheduled task or RMM action only has to run a known configuration, which also makes later layout changes much easier to review.
 
 ## Preview before changing a desktop
 
-Use `-Target File` and an explicit output name while building a layout. A file preview is faster to compare, easier to attach to a review, and safer than changing the current wallpaper after every edit.
+While building a layout, I use `-Target File` and an explicit output name. Comparing two files is much easier than changing my desktop after every edit, and the preview can be attached to a pull request or change record.
 
-Once the result is approved, choose the narrowest deployment target:
+Once the preview looks right, choose the deployment target:
 
 - current user for a normal sign-in or scheduled refresh
 - all existing users and the default profile for a shared device
 - logon screen for system-level context
 - both desktop and logon screen when the same policy belongs in each place
 
-All-users and logon-screen changes require an elevated context. Test those paths against the Windows versions and management baselines used by the fleet.
+All-users and logon-screen changes require elevation. Test them on the Windows versions and management baselines used by the fleet before turning the configuration into policy.
 
 ## Multi-monitor placement and wallpaper behavior
 
-Information that looks good on a 1920×1080 primary monitor may overlap important content on an ultrawide display or land on the wrong screen in a docked setup. PowerBGInfo supports monitor selection, corner and center anchors, offsets, and explicit placement.
+Information that fits a 1920×1080 primary monitor may cover the subject of an ultrawide wallpaper or appear on the wrong screen after docking. PowerBGInfo supports monitor selection, corner and center anchors, offsets, and explicit placement, but I still preview the result at the resolutions people actually use.
 
-It also accounts for wallpaper slideshows. A deployment can preserve the slideshow by rendering each source, or deliberately disable it for one static result. Refresh behavior matters because Windows may reuse a cached wallpaper path after sign-in; the module handles that workflow so a newly rendered file is actually shown.
+Wallpaper slideshows need a decision as well. PowerBGInfo can render every slideshow source or replace the slideshow with one static result. It also handles the Windows wallpaper refresh path so the new file is shown instead of an older cached copy.
 
 ## Charts should answer a small operational question
 
-PowerBGInfo 2.x can composite ChartForgeX-backed visuals into the wallpaper. This is not an invitation to turn every desktop into a monitoring dashboard. It is useful when one compact visual answers a local question:
+PowerBGInfo 2.x can add ChartForgeX visuals to the wallpaper. I would not turn every desktop into a monitoring dashboard, but one small chart can answer a useful local question:
 
 - CPU or memory trend on a lab host
 - workspace disk usage on a build agent
@@ -130,29 +128,29 @@ New-BGInfoChart `
     -OffsetY 20
 ```
 
-Place this chart declaration inside the `New-BGInfo { ... }` configuration block above. CPU history accumulates across refreshes; the first render does not contain sixty historical samples. Keep enough vertical space between overlays and inspect the file preview at the actual target resolution.
+Place the chart declaration inside the `New-BGInfo { ... }` block above. CPU history accumulates as the background is refreshed, so the first render will not contain sixty historical samples. Leave enough space between overlays and inspect the file preview at the target resolution.
 
 ## Topology can provide immediate context
 
-A small topology overlay can show the services behind a lab, the route to an application, or the ownership around a shared machine. Nodes and edges come from the PowerBGInfo configuration; ChartForgeX provides the deterministic layout and rendering.
+A small topology overlay can show which services belong to a lab, the route to an application, or the owners of a shared machine. PowerBGInfo supplies the nodes and edges; ChartForgeX handles the layout and drawing.
 
 ![A PowerBGInfo desktop background with a compact service topology](./images/topology-desk.webp)
 
-This is the same ownership boundary used elsewhere in the Evotec visual stack. [ChartForgeX](/projects/chartforgex/) owns reusable charts, topology, and visual composition. PowerBGInfo owns Windows wallpaper behavior, values, placement, deployment, caching, and refresh. [ImagePlayground](/projects/imageplayground/) exposes broader image automation through PowerShell.
+[ChartForgeX](/projects/chartforgex/) owns the reusable charts, topology, and composition. PowerBGInfo owns the Windows-specific work: values, placement, deployment targets, caching, and refresh. [ImagePlayground](/projects/imageplayground/) exposes the broader image tooling through PowerShell. Keeping those jobs separate means wallpaper behavior does not leak into a general rendering library.
 
 ## What changed since the original PowerBGInfo article
 
-The earlier [PowerBGInfo introduction](/blog/powerbginfo-powershell-alternative-to-sysinternals-bginfo/) remains useful history, but the current product is materially broader. The modern line adds a richer value model, multi-monitor-aware placement, JSON configuration, multiple deployment targets, slideshow handling, chart and topology overlays, visual-canvas layouts, and patterns for labs, training machines, build agents, security operations, and executive summaries.
+The earlier [PowerBGInfo introduction](/blog/powerbginfo-powershell-alternative-to-sysinternals-bginfo/) shows where the project started. Since then I have added a richer value model, multi-monitor placement, JSON configuration, several deployment targets, slideshow handling, charts, topology, and visual-canvas layouts.
 
-The product is still built around a simple promise: when someone looks at a managed Windows screen, the context they need should already be there.
+The original idea has not changed. When someone looks at a managed Windows screen, the first pieces of support context should already be there.
 
 ## Documentation, API, and examples
 
-The [PowerBGInfo project hub](/projects/powerbginfo/) now gives the project its own complete surface:
+The [PowerBGInfo project hub](/projects/powerbginfo/) links the current material:
 
 - [documentation](/projects/powerbginfo/docs/) covers deployment, refresh, layouts, and troubleshooting
 - [PowerShell API](/projects/powerbginfo/api/) lists the current commands and parameter sets
 - [examples](/projects/powerbginfo/examples/) link to maintained deployment, chart, topology, and visual-canvas workflows
 - [GitHub](https://github.com/EvotecIT/PowerBGInfo) remains the source and issue tracker
 
-Start with file output, test at the monitor resolutions used in the fleet, and only then apply the configuration through the intended user or system context. A desktop background is visible infrastructure; it deserves the same review discipline as any other deployed configuration.
+My recommendation is to start with file output, check it at the monitor resolutions used in the fleet, and only then apply it in the intended user or system context. The background may be decorative to Windows, but once it carries support information it becomes part of the deployed configuration.

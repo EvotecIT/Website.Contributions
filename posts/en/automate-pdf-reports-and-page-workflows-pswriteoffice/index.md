@@ -1,6 +1,6 @@
 ---
 title: "Compose PDF reports and automate page workflows with PSWriteOffice"
-description: "Create flowing PDF reports, position text at exact coordinates, add forms and attachments, reorder pages, and extract content from PowerShell."
+description: "Build a PDF report from PowerShell, then add forms, attachments, page changes, extraction, or redaction without mixing every job into one command."
 date: "2026-08-19"
 language: "en"
 authors:
@@ -19,11 +19,11 @@ image_alt: "Operations specialist checking a PDF review pack with forms, attachm
 draft: true
 ---
 
-PDF automation usually means one of two things. You are either composing a new fixed-layout document from data, or operating on a PDF that already exists. Those jobs need different tools.
+When someone asks me to "automate a PDF," I first ask what they mean. Are we creating a report from data, or changing a PDF that already exists? Both end with a `.pdf` file, but the scripts should look very different.
 
-PSWriteOffice exposes both through the OfficeIMO PDF engine. The composition DSL handles headings, paragraphs, rich text, tables, lists, images, forms, headers, footers, bookmarks, and attachments. Focused commands handle existing files: inspect, extract, merge, split, reorder, stamp, overlay, redact, sanitize, optimize, and exchange form data.
+PSWriteOffice supports both jobs through the OfficeIMO PDF engine. For a new report, I use the composition DSL for headings, paragraphs, rich text, tables, lists, images, forms, headers, footers, bookmarks, and attachments. For an existing file, I reach for focused commands that inspect, extract, merge, split, reorder, stamp, overlay, redact, sanitize, or optimize it.
 
-The distinction matters because a flowing paragraph should not require coordinates, while a review stamp at an exact page position should not pretend to be ordinary document content.
+Keeping those paths separate makes the script easier to understand. A paragraph should flow onto the next page without coordinates. A review stamp should land at the exact coordinates I give it.
 
 ## Before you start
 
@@ -34,11 +34,11 @@ Install-Module PSWriteOffice -Scope CurrentUser -Force
 Import-Module PSWriteOffice
 ```
 
-Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
+Run the examples from a folder where you can write the generated files. Replace the sample files and service details with your own after the first successful run.
 
-## Compose A Report In Document Flow
+## Compose a report in document flow
 
-Start with the DSL when the script owns the report. The page layout engine places flowing content and handles page breaks as the report grows.
+If my script owns the report, I start with the DSL and let the page layout engine place the content. The report can grow without turning every page break into another calculation.
 
 ```powershell
 $findings = @(
@@ -55,13 +55,13 @@ PdfNew -Path '.\Access-Review.pdf' {
 }
 ```
 
-This block uses the short PDF aliases consistently. The canonical equivalents are `New-OfficePdf`, `Set-OfficePdfTheme`, `Add-OfficePdfHeading`, `Add-OfficePdfParagraph`, `Add-OfficePdfTable`, and `Add-OfficePdfText`. Pick one command style for a composition block instead of mixing both.
+I use the short PDF aliases throughout this block. The longer equivalents are `New-OfficePdf`, `Set-OfficePdfTheme`, `Add-OfficePdfHeading`, `Add-OfficePdfParagraph`, `Add-OfficePdfTable`, and `Add-OfficePdfText`. Both styles call the same engine; mixing them in one report just makes the script harder to scan.
 
-Saved constructors are quiet by default. You do not need `Out-Null` or a suppression switch. Add `-PassThru` only when the next command needs the saved file.
+The constructor does not write an object to the pipeline after saving, so `Out-Null` is unnecessary. Add `-PassThru` only when the next command needs the saved file.
 
-## Format One Line Without Building Paragraphs By Hand
+## Format one line without building paragraphs by hand
 
-Use a text run when formatting changes inside one line. The columnar form keeps the content readable when values come from an object:
+For mixed formatting on one line, I use a text run. The columnar form is especially readable when the values come from an object:
 
 ```powershell
 $finding = [pscustomobject]@{
@@ -80,11 +80,11 @@ PdfNew -Path '.\Finding-Summary.pdf' {
 }
 ```
 
-A scalar style value applies to every segment. A style array must have one value or the same number of values as `Text`, so a missing entry cannot silently shift formatting onto the wrong content.
+A single style value applies to every segment. If you pass a style array, it must contain either one value or the same number of entries as `Text`. A missing entry cannot silently move bold or color onto the wrong value.
 
-## Position Text At Exact Coordinates
+## Position text at exact coordinates
 
-`PdfText` and `PdfParagraph` belong to normal document flow. They intentionally do not have `X` and `Y` parameters. When text must start at a fixed coordinate, add canvas content to an existing PDF:
+`PdfText` and `PdfParagraph` belong to normal document flow, so they do not have `X` and `Y` parameters. When I need a page label, signature, or another item at a fixed point, I add canvas content to an existing PDF:
 
 ```powershell
 Add-OfficePdfCanvas -Path '.\Access-Review.pdf' -OutputPath '.\Access-Review-Positioned.pdf' -Content {
@@ -96,11 +96,11 @@ Add-OfficePdfCanvas -Path '.\Access-Review.pdf' -OutputPath '.\Access-Review-Pos
 }
 ```
 
-Canvas coordinates use PDF points from the visual top-left of the page. Use this surface for page labels, registration marks, fixed headers, signatures, or generated overlays. For a single text or image mark, `Add-OfficePdfStamp` is shorter. For a complete imported page, use `Add-OfficePdfPageOverlay`.
+Canvas coordinates use PDF points measured from the visual top-left of the page. The canvas fits page labels, registration marks, fixed headers, signatures, and generated overlays. For one text or image mark, `Add-OfficePdfStamp` is shorter. To place a complete imported page over another page, use `Add-OfficePdfPageOverlay`.
 
-The canvas command accepts normal strings and rich text runs directly. There is no need to create a runtime-typed .NET array in PowerShell.
+The canvas command accepts normal strings and rich text runs directly. You do not need to construct a runtime-typed .NET array in PowerShell.
 
-## Add Forms And Exchange Their Data
+## Add forms and exchange their data
 
 Form fields can be part of the original composition:
 
@@ -116,18 +116,18 @@ PdfNew -Path '.\Change-Request.pdf' {
 
 ![Owner and Decision fields rendered from the Change-Request PDF example](./images/change-request-form.png)
 
-XFDF keeps the field values separate from the document when another system needs to exchange or archive them:
+When another system needs to exchange or archive the field values separately, I use XFDF:
 
 ```powershell
 Export-OfficePdfXfdf -Path '.\Change-Request.pdf' -OutputPath '.\Change-Request.xfdf'
 Import-OfficePdfXfdf -Path '.\Change-Request.pdf' -XfdfPath '.\Change-Request.xfdf' -OutputPath '.\Change-Request-Updated.pdf'
 ```
 
-PSWriteOffice can also inspect fields, flatten them deliberately, and work with annotations. Flatten only when the delivery copy should no longer be interactive.
+PSWriteOffice can inspect fields, work with annotations, and flatten the form. I flatten only the delivery copy, after nobody needs to edit the fields again.
 
-## Attach Evidence To The Delivery Copy
+## Attach evidence to the delivery copy
 
-An attachment keeps supporting material with the report:
+Sometimes the evidence belongs with the report but should not become another visible page. In that case I attach it:
 
 ```powershell
 PdfNew -Path '.\Audit-Report.pdf' {
@@ -143,11 +143,11 @@ PdfNew -Path '.\Audit-Report.pdf' {
 }
 ```
 
-Attachments are useful for evidence packs, electronic invoices, source data, or signed supporting documents. They remain separate files inside the PDF rather than being rendered as visible pages.
+This works well for evidence packs, electronic invoices, source data, or signed supporting documents. The attachment remains a separate file inside the PDF.
 
-## Reorder, Merge, And Split Existing Pages
+## Reorder, merge, and split existing pages
 
-Page operations do not require recomposing the source document. This moves the approval page to the front and writes a new file:
+Page operations do not require rebuilding the document. This example moves the approval page to the front and writes a new file:
 
 ```powershell
 Move-OfficePdfPage `
@@ -157,11 +157,11 @@ Move-OfficePdfPage `
     -OutputPath '.\Review-Pack-Reordered.pdf'
 ```
 
-Use `Join-OfficePdf` to assemble a pack and `Split-OfficePdf` to separate it by page range or pages per document. Keep the source file while validating a transformation; a successful write does not prove that every advanced PDF feature was preserved.
+`Join-OfficePdf` assembles a pack, while `Split-OfficePdf` separates it by page range or number of pages per document. I keep the source file until the result has been checked. Successfully writing a PDF does not prove that every advanced feature in the original survived the transformation.
 
-## Export An Office Document To PDF Deliberately
+## Export an Office document to PDF deliberately
 
-Word, Excel, PowerPoint, Markdown, and RTF creation no longer hide a PDF side effect inside `New-*` or `Save-*`. Create the source artifact first, then request the delivery format explicitly:
+For Word, Excel, PowerPoint, Markdown, and RTF, I create the source artifact first and request PDF as a separate delivery step. That keeps a failed conversion from being hidden inside a `New-*` or `Save-*` command:
 
 ```powershell
 New-OfficeWord -Path '.\Service-Review.docx' {
@@ -175,24 +175,24 @@ Export-OfficeDocumentPdf `
     -Path '.\Service-Review.pdf'
 ```
 
-This is the one deliberate `InputPath` exception in the PSWriteOffice public API. `Path` names the PDF being produced, so `InputPath` makes the source role unambiguous. Other commands use `Path` for their primary file, `OutputPath` for a transformed copy, and `DestinationPath` for a copy destination.
+This command deliberately uses `InputPath` for the source because `Path` names the PDF being produced. Elsewhere, commands use `Path` for the primary file, `OutputPath` for a transformed copy, and `DestinationPath` for a copy destination.
 
-## Extract And Inspect Before Changing
+## Extract and inspect before changing
 
-Read-only commands make PDFs useful in search, compliance, and ingestion workflows:
+Before I change an unfamiliar PDF, I inspect it. The read-only commands also make the same files useful in search, compliance, and ingestion workflows:
 
 ```powershell
 $pages = Get-OfficePdfText -Path '.\Policy.pdf' -ByPage
 $pages | Select-Object PageNumber, Text
 ```
 
-Other commands inspect document information, fonts, images, attachments, form fields, annotations, signatures, compliance, interactions, optimization opportunities, and rewrite safety. Use that evidence before redaction, sanitization, optimization, or destructive page changes.
+There are commands for document information, fonts, images, attachments, form fields, annotations, signatures, compliance, interactions, optimization opportunities, and rewrite safety. I use that evidence before redaction, sanitization, optimization, or destructive page changes.
 
-For sensitive content, build a redaction plan from detected text and write a new delivery copy. Do not confuse a visual rectangle with removing the underlying text. `ConvertTo-OfficePdfRedacted` applies actual redaction through the PDF engine.
+For sensitive content, build a redaction plan from detected text and write a new delivery copy. Drawing a black rectangle is not redaction; the underlying text may still be present. `ConvertTo-OfficePdfRedacted` removes it through the PDF engine.
 
-## Deliver The Result With Mailozaurr
+## Deliver the result with Mailozaurr
 
-Once the PDF is accepted, Mailozaurr can send the delivery copy without making PSWriteOffice own SMTP or Microsoft Graph:
+After the PDF has been reviewed, Mailozaurr can send the delivery copy:
 
 ```powershell
 $mailCredential = Get-Secret -Name 'Reporting-Smtp-Credential'
@@ -208,11 +208,11 @@ Send-EmailMessage `
     -UseSsl
 ```
 
-Mailozaurr owns message composition, authentication, transport, and mailbox operations. PSWriteOffice owns the generated document artifacts. That boundary also keeps provider choices out of reporting code: the same files can be delivered through SMTP, Microsoft Graph, Gmail, SendGrid, Mailgun, or Amazon SES by changing the Mailozaurr connection layer.
+PSWriteOffice creates the files; Mailozaurr handles the message, authentication, transport, and mailbox operations. The report code stays the same whether delivery uses SMTP, Microsoft Graph, Gmail, SendGrid, Mailgun, or Amazon SES.
 
-`Get-Secret` comes from Microsoft.PowerShell.SecretManagement. Keep the credential in the secret provider used by the scheduled job or CI runner, not in the report script.
+`Get-Secret` comes from Microsoft.PowerShell.SecretManagement. Store the credential in the secret provider trusted by the scheduled job or CI runner, rather than in the report script.
 
-## Choose The Smallest Surface
+## Which command should I use?
 
 | Job | Surface |
 | --- | --- |
@@ -225,6 +225,6 @@ Mailozaurr owns message composition, authentication, transport, and mailbox oper
 | Search or compliance evidence | Text extraction, inspection, diagnostics, and preflight |
 | Safe delivery copy | Redaction, sanitization, optimization, flattening, or signing commands |
 
-The [PSWriteOffice PDF recipes](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples/Pdf) contain complete scripts for invoices, audit reports, forms, attachments, extraction, page reordering, merging, splitting, positioned content, redaction, sanitization, and preflight. The examples use simple local file names so you can run them first and replace the sample data afterward.
+The [PSWriteOffice PDF recipes](https://github.com/EvotecIT/PSWriteOffice/tree/main/Examples/Pdf) contain complete scripts for invoices, audit reports, forms, attachments, extraction, page reordering, merging, splitting, positioned content, redaction, sanitization, and preflight. They use simple local file names so you can run one first and replace the sample data afterward.
 
-PDF is a fixed-layout destination, but the PowerShell workflow does not need to feel fixed. Use semantic composition for the report, exact coordinates only where they carry meaning, and focused commands for the document operations that follow.
+My rule is simple: compose new reports in document flow, use coordinates only for content that really has a fixed position, and use a focused command when changing an existing PDF. That keeps a large PDF workflow readable even after forms, evidence, delivery, and compliance checks are added.
