@@ -39,13 +39,13 @@ The same core mechanics power both.
 
 ## Before you start
 
-Use PowerShell 7 and install the public module versions used for this article:
+Use PowerShell 7 and install the current public modules used for this article:
 
 ```powershell
-Install-Module PSWriteOffice -RequiredVersion 3.0.7 -Scope CurrentUser
-Import-Module PSWriteOffice -RequiredVersion 3.0.7
-Install-Module PSParseHTML -RequiredVersion 3.0.1 -Scope CurrentUser
-Import-Module PSParseHTML -RequiredVersion 3.0.1
+Install-Module PSWriteOffice -Scope CurrentUser -Force
+Import-Module PSWriteOffice
+Install-Module PSParseHTML -Scope CurrentUser -Force
+Import-Module PSParseHTML
 ```
 
 Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.

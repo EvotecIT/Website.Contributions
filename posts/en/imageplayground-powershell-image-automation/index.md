@@ -33,11 +33,11 @@ The useful part is repeatability. Inputs, transformations, dimensions, output fo
 
 ## Before you start
 
-Use PowerShell 7 and install the public module versions used for this article:
+Use PowerShell 7 and install the current public modules used for this article:
 
 ```powershell
-Install-Module ImagePlayground -RequiredVersion 3.2.7 -Scope CurrentUser
-Import-Module ImagePlayground -RequiredVersion 3.2.7
+Install-Module ImagePlayground -Scope CurrentUser -Force
+Import-Module ImagePlayground
 ```
 
 Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.

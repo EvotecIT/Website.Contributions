@@ -40,13 +40,13 @@ The result is a practical data movement story:
 
 ## Before you start
 
-Use PowerShell 7 and install the public module versions used for this article:
+Use PowerShell 7 and install the current public modules used for this article:
 
 ```powershell
-Install-Module PSWriteOffice -RequiredVersion 3.0.7 -Scope CurrentUser
-Import-Module PSWriteOffice -RequiredVersion 3.0.7
-Install-Module DbaClientX -RequiredVersion 1.0.8 -Scope CurrentUser
-Import-Module DbaClientX -RequiredVersion 1.0.8
+Install-Module PSWriteOffice -Scope CurrentUser -Force
+Import-Module PSWriteOffice
+Install-Module DbaClientX -Scope CurrentUser -Force
+Import-Module DbaClientX
 ```
 
 Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
