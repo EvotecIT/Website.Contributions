@@ -1,6 +1,6 @@
 ---
 title: "Build an editable PowerPoint service brief from PowerShell"
-description: "Create an editable PowerPoint technical brief from PowerShell objects using PSWriteOffice designer deck plans, charts, tables, notes, sections, transitions, and structural read-back."
+description: "Build an editable PowerPoint briefing from PowerShell without turning every slide into a long list of coordinates."
 date: "2026-05-11"
 language: "en"
 authors:
@@ -19,11 +19,11 @@ image_alt: "Technical presenter reviewing an editable service briefing with a co
 draft: true
 ---
 
-PowerPoint automation gets painful when every slide is a coordinate exercise. You can create slides that way, but consistent decks require a lot of layout knowledge in the script.
+My first PowerPoint automation scripts knew the position and size of almost every shape. They worked, but changing the layout meant changing a page of coordinates, and every new slide copied a little more design knowledge into the script.
 
-The newer OfficeIMO PowerPoint designer APIs move the problem up a level: describe the deck semantically, then let the engine choose layouts and render a complete editable `.pptx`. PSWriteOffice exposes that designer layer to PowerShell, so a script can build decks from objects without turning every slide into a design math project.
+The newer OfficeIMO designer APIs let me describe the slide instead: this is a process, these are cards, and this section contains the evidence. The engine chooses the initial layouts and produces an editable `.pptx`. PSWriteOffice brings that model into PowerShell while keeping explicit chart, table, notes, and shape commands for slides that need precise control.
 
-This showcase uses a technical delivery story about building the PSWriteOffice examples. It turns delivery steps, responsibilities, sample metrics, and next actions into slides that can be presented, edited, imported into another deck, or used as a starting template. The Coverage and Polish values are fictional chart data, not measured product scores or a current roadmap. Replace those objects with service-health data to build a briefing alongside the Word and Excel reports.
+This example tells the story of building the PSWriteOffice examples. It turns delivery steps, responsibilities, sample metrics, and next actions into an eight-slide deck. The Coverage and Polish values are fictional chart data, rather than product scores or a roadmap. Replace them with service-health data, project status, or another briefing that belongs beside the Word and Excel reports in this series.
 
 ![PowerPoint slide preview showing where OfficeIMO, PSWriteOffice, examples, and website content belong](./images/process-slide.png)
 
@@ -36,11 +36,11 @@ Install-Module PSWriteOffice -Scope CurrentUser -Force
 Import-Module PSWriteOffice
 ```
 
-Run examples from a working folder where you can write the generated files. Supply your own inputs wherever a later example references an existing file or service.
+Run the examples from a folder where you can write the generated files. Replace the fictional values after the first successful run.
 
-## What The Example Builds
+## What the example builds
 
-The [full showcase script](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1) lives in the PSWriteOffice repository. Run the following blocks in order to build the eight-slide example.
+The [full showcase script](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1) lives in the PSWriteOffice repository. The blocks below build its eight-slide compact version.
 
 It creates a service brief deck with:
 
@@ -60,11 +60,11 @@ It creates a service brief deck with:
 - slide transitions
 - structural slide read-back
 
-The point is not only "PowerShell can add a slide." The generated deck stays editable and can serve as a practical starting point for a real briefing.
+The deck stays editable. That is what makes the example useful to me: PowerShell creates the first solid version, and a presenter can still adjust the wording or move a shape before the meeting.
 
-## Deck Plan First
+## Deck plan first
 
-The example begins with business-shaped PowerShell objects: process steps, product cards, coverage areas, capabilities, and metrics.
+I begin with the information that belongs in the story: process steps, product cards, coverage areas, capabilities, and metrics.
 
 ```powershell
 $process = @(
@@ -132,7 +132,7 @@ $tableRows = @(
 $path = '.\PSWriteOffice-Service-Brief.pptx'
 ```
 
-Those objects become a semantic deck plan:
+Then I map those objects into a deck plan:
 
 ```powershell
 $plan = New-OfficePowerPointDeckPlan {
@@ -173,20 +173,20 @@ $plan = New-OfficePowerPointDeckPlan {
 }
 ```
 
-This is the important shift: the script describes intent. The designer layer handles visual composition.
+The script now says what each slide is for. It no longer has to explain where every title and card should sit.
 
-## Writing Slides Two Ways
+## Writing slides two ways
 
-The example uses two complementary writing modes:
+The example uses two writing modes:
 
 - Semantic slides through `New-OfficePowerPointDeckPlan` and `Add-OfficePowerPointDesignerDeck`.
 - Explicit evidence slides through `PptSlide`, `PptChart`, `PptTable`, and `PptNotes`.
 
-That split matters. Narrative slides benefit from designer composition. Evidence slides often need precise chart, table, and notes placement.
+I use designer composition for the narrative slides. For evidence, I usually want the chart, table, and speaker notes to be explicit so the result is predictable.
 
-## Build The Deck Once
+## Build the deck once
 
-The showcase renders the semantic plan, adds evidence slides, creates sections, and applies transitions in one composition block. It does not save, reopen, and save the same deck for every step.
+The showcase renders the deck plan, adds the evidence slides, creates sections, and applies transitions in one composition block. The presentation is saved once instead of being reopened for every step.
 
 ```powershell
 PptNew -Path $path {
@@ -242,11 +242,11 @@ PptNew -Path $path {
 
 ![PowerPoint chart slide using fictional Coverage and Polish values to demonstrate two editable series](./images/chart-slide.png)
 
-The block uses the concise aliases consistently. The equivalent canonical names remain available in command help. The output is not a static export: it is a deck you can continue editing, presenting, importing into another deck, or using as a template.
+I use the concise aliases consistently in this block; the longer command names remain available in help. The output is a normal presentation that can be edited, presented, imported into another deck, or reused as a template.
 
-## Use A Presentation Object For Loop-Driven Decks
+## Use a presentation object for loop-driven decks
 
-When normal PowerShell control flow decides which slides to add, keep the presentation object instead of wrapping everything in a DSL block:
+When a loop or condition decides which slides to add, I keep the live presentation object instead of forcing everything into one DSL block:
 
 ```powershell
 $presentation = New-OfficePowerPoint -Path '.\Customer-Briefing.pptx' -NoSave
@@ -257,11 +257,11 @@ $presentation | Save-OfficePowerPoint
 $presentation | Close-OfficePowerPoint
 ```
 
-This is the same engine and the same document model. Choose the shape that makes the surrounding script easiest to read.
+Both forms use the same engine and document model. Pick the one that makes the surrounding script easier to follow.
 
-## Reading And Validating The Deck
+## Reading and validating the deck
 
-The showcase finishes by reading the generated deck back. That makes the example useful in CI and in demos because you can prove the deck is more than a file on disk.
+After saving, I read the deck back. CI can then check the slide count, notes, sections, and evidence slides instead of only checking that a `.pptx` file exists.
 
 ```powershell
 $presentation = Get-OfficePowerPoint -Path $path
@@ -284,11 +284,11 @@ if (($summary | Where-Object HasNotes).Count -lt 2) {
 }
 ```
 
-These checks verify slide structure. Open the generated deck in your target presentation application as well to check layout, fonts, transitions, and presenter notes before delivery.
+These checks verify the structure. I still open a representative deck in the presentation application people will use, because an object count cannot confirm fonts, layout, transitions, or presenter notes.
 
-## Performance And Scale
+## Performance and scale
 
-PowerPoint generation performance is mostly about avoiding unnecessary layout work and repeated file opens.
+Most PowerPoint generation time is lost to repeated file opens and layout work the script did not need to repeat.
 
 - Build the deck plan in memory, then render once.
 - Use semantic sections for narrative content instead of manually placing every shape.
@@ -297,11 +297,11 @@ PowerPoint generation performance is mostly about avoiding unnecessary layout wo
 - Add notes during generation instead of reopening slides later.
 - Validate slide summaries instead of parsing every Open XML part in routine tests.
 
-For a larger briefing pack, split the deck into cover, story, evidence, appendix, and handoff sections. That keeps the generated file understandable and keeps future automation easy to extend.
+For a larger briefing, I split the deck into cover, story, evidence, appendix, and handoff sections. The generated file is easier to navigate, and the script has clear places to add new material.
 
-## More Deck Ideas
+## Where I use the same approach
 
-The same pattern can produce:
+The same mix of designed narrative slides and explicit evidence slides works for:
 
 - monthly service review decks with charts, owner actions, and speaker notes
 - customer delivery packs with milestones, capabilities, case studies, and appendix tables
@@ -309,15 +309,8 @@ The same pattern can produce:
 - project status decks generated from issue trackers or planning systems
 - reusable consulting templates where data changes but the story structure stays stable
 
-## What This Enables
+## After the first generated deck
 
-The combined surface supports both semantic design and precise evidence slides:
+Generation is only one part of the PowerPoint workflow. The same module can inspect an existing deck, copy approved slides into another presentation, update text and notes, organize sections, and export an HTML review surface.
 
-- fewer coordinates in PowerShell scripts
-- repeatable slide composition
-- semantic deck planning
-- designer-generated visual structure
-- mixed semantic and explicit evidence slides
-- speaker notes and maintenance metadata
-
-PowerShell can express the story of a deck, not just place shapes on a canvas. For maintenance workflows, the same module can inspect existing slides, copy approved slides between decks, update text and notes, organize sections, and export an HTML review surface.
+I still use coordinates when a slide genuinely needs exact placement. The difference is that they are now the exception. Most of the script describes the story and data, while the few evidence slides keep the precise layout they need.
