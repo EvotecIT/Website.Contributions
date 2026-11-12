@@ -57,9 +57,7 @@ To reproduce the run, [start the API](#start-the-api-in-terminal-a), [save the c
 
 Use PowerShell 7.6, two terminals, a writable directory, and free loopback port `8765`. The lab runs locally and needs no modules or credentials.
 
-The results here were recorded programmatically on macOS 26.3.2 ARM64 with PowerShell 7.6.9 and .NET 10.0.14. Separately, in [review 5766249733](https://github.com/EvotecIT/Website.Contributions/pull/19#pullrequestreview-5766249733), maintainer PrzemyslawKlys reported running both listings on Windows with PowerShell 7.6.9. All six scenarios matched the table in that report.
-
-Independent Windows execution, Linux, Windows PowerShell 5.1, and an interactive terminal A/B walkthrough remain untested here.
+The lab was run programmatically on macOS 26.3.2 ARM64 with PowerShell 7.6.9 and .NET 10.0.14. All six scenarios also matched the expected results on Windows with PowerShell 7.6.9. Linux, Windows PowerShell 5.1, and the interactive two-terminal walkthrough were not tested.
 
 In terminal A, start PowerShell:
 
